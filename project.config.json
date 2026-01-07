@@ -2,7 +2,7 @@
   "miniprogramRoot": "miniprogram/",
   "projectname": "ai-smart-prompter",
   "description": "AI Smart Prompter Mini Program",
-  "appid": "touristappid",
+  "appid": "wxba4b089946ced6d0",
   "setting": {
     "urlCheck": true,
     "es6": true,
@@ -36,7 +36,16 @@
     "userConfirmedBundleSwitch": false,
     "packNpmManually": false,
     "packNpmRelationList": [],
-    "minifyWXSS": true
+    "minifyWXSS": true,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
   "libVersion": "2.19.4",
@@ -48,5 +57,6 @@
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "simulatorPluginLibVersion": {}
 }
