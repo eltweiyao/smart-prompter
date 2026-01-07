@@ -12,12 +12,12 @@ const ASR_CONFIG = {
 
 // --- Helper: Fuzzy Text Matcher (Tolerant to ASR errors) ---
 class FuzzyTextMatcher {
-  constructor(fullScript) {
+  constructor(fullScript, startIndex = 0) {
     // Keep only Chinese, English, Numbers.
     this.script = fullScript.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '');
     this.originalScript = fullScript;
-    this.lastIndex = 0;
-    console.log('FuzzyMatcher initialized. Script len:', this.script.length);
+    this.lastIndex = startIndex;
+    console.log('FuzzyMatcher initialized. Script len:', this.script.length, 'Start:', startIndex);
   }
 
   match(partialText) {
@@ -159,11 +159,12 @@ class QwenASRClient {
           input_audio_format: 'pcm',
           input_audio_transcription: {
              model: ASR_CONFIG.MODEL,
+             enable_intermediate_result: true
           },
           turn_detection: {
             type: 'server_vad',
-            threshold: 0.5,
-            silence_duration_ms: 800
+            threshold: 0.3,
+            silence_duration_ms: 200
           }
         }
       };
@@ -172,12 +173,9 @@ class QwenASRClient {
       this.startMic();
     });
     
-    // ... (onMessage, onError, onClose remain same)
     this.socket.onMessage((res) => {
       try {
         const data = JSON.parse(res.data);
-        // Debug: Log all event types
-        // console.log('📩 Rx Event:', data.type); 
 
         if (data.type === 'error') {
            console.error('❌ ASR Error Event:', JSON.stringify(data.error));
@@ -185,11 +183,18 @@ class QwenASRClient {
         }
 
         if (data.type === 'session.created') console.log('✅ Session Created');
-        if (data.type === 'response.audio_transcript.delta') {
+        
+        // Handle all possible text delta events for the protocol
+        if (data.type === 'response.audio_transcript.delta' || 
+            data.type === 'conversation.item.input_audio_transcription.delta' ||
+            data.type === 'input_audio_buffer.transcription.delta') {
            const text = data.delta;
-           console.log('📝 Delta:', text);
-           if (text) this.callbacks.onText(text);
+           if (text) {
+             console.log('📝 Delta:', text);
+             this.callbacks.onText(text);
+           }
         }
+
         if (data.type === 'conversation.item.input_audio_transcription.completed') {
            const text = data.transcript;
            console.log('✅ Sentence Completed:', text);
@@ -216,12 +221,10 @@ class QwenASRClient {
   startMic() {
     console.log('🎤 Starting Microphone...');
     
-    // 1. Force Stop to clear state (might trigger 'recorder not start' error, which we ignore now)
     try {
       recorderManager.stop();
     } catch(e) {}
 
-    // 2. Wait and Start
     setTimeout(() => {
       if (!this.isConnected || !this.isRecording) return; 
 
@@ -229,7 +232,8 @@ class QwenASRClient {
         format: 'PCM',
         sampleRate: 16000,
         numberOfChannels: 1,
-        frameSize: 2 
+        frameSize: 1.0, // 1KB stable for network
+        duration: 600000 
       });
     }, 100);
   }
@@ -265,11 +269,10 @@ Page({
   
   // Internal State
   contentHeight: 0,
-  viewportHeight: 0, // Need to track viewport height
+  viewportHeight: 0, 
   asrClient: null,
   matcher: null,
-  
-  lastTouchY: 0, // For manual drag
+  lastTouchY: 0, 
 
   onLoad: function(options) {
     const sysInfo = wx.getSystemInfoSync();
@@ -320,20 +323,15 @@ Page({
 
   measureLayout: function() {
     const query = wx.createSelectorQuery();
-    // Measure content height
     query.select('.text-content').boundingClientRect();
-    // Measure viewport height
     query.select('.prompter-viewport').boundingClientRect();
     
     query.exec((res) => {
-      // Add checks
       if (res[0]) {
         this.contentHeight = res[0].height;
-        // console.log('Content Height:', this.contentHeight);
       }
       if (res[1]) {
         this.viewportHeight = res[1].height;
-        // console.log('Viewport Height:', this.viewportHeight);
       }
     });
   },
@@ -363,7 +361,6 @@ Page({
   setBgColor: function(e) { this.setData({ bgColor: e.currentTarget.dataset.color }); },
 
   stopAll: function() {
-    // Determine which mode to stop
     if (this.data.mode === 'basic') {
       this.freezeBasicScroll();
     } else {
@@ -382,10 +379,9 @@ Page({
     } 
   },
 
-  // --- Manual Scroll Logic (Touch Drag) ---
   onTouchStart: function(e) {
     if (this.data.isRunning) {
-      this.stopAll(); // Auto-stop on touch
+      this.stopAll(); 
     }
     this.lastTouchY = e.touches[0].clientY;
   },
@@ -395,7 +391,6 @@ Page({
     const delta = currentY - this.lastTouchY;
     this.lastTouchY = currentY;
     
-    // Direct manipulation: No transition
     const newOffset = this.data.offsetY + delta;
     
     this.setData({
@@ -405,39 +400,21 @@ Page({
   },
   
   onTouchEnd: function() {
-    // Optional: Add inertia/fling logic here if desired
   },
 
-
-  // --- 1. Basic Mode: CSS Transition Engine ---
-  
   startBasicScroll: function() {
     this.measureLayout();
-    
-    // Ensure layout is ready. If contentHeight is 0, retry shortly.
     if (!this.contentHeight) {
-      console.warn('Content height is 0, retrying startBasicScroll...');
       setTimeout(() => this.startBasicScroll(), 100);
       return;
     }
     
     const currentOffset = this.data.offsetY;
-    // We scroll until the bottom of content aligns with the "Center Line" (padding-space).
-    // The content structure is: padding(50vh) + text + padding(50vh).
-    // Initial state (offsetY=0): Top padding pushes text to middle.
-    // End state: We want text to move UP.
-    // Total scrollable distance is roughly contentHeight.
-    // Let's set target to -contentHeight which moves everything up significantly.
     const targetOffset = -this.contentHeight;
     const distance = Math.abs(targetOffset - currentOffset);
     
-    console.log(`Starting Basic Scroll. From ${currentOffset} to ${targetOffset} (Dist: ${distance})`);
-    
     if (distance <= 0) return; 
     
-    // Speed Logic: Pixels per Second
-    // Slider 1-20. Let's say Speed 10 = 50px/s (readable speed)
-    // Speed 1 = 10px/s, Speed 20 = 150px/s
     const pps = this.data.speed * 8 + 10; 
     const duration = distance / pps;
     
@@ -449,29 +426,21 @@ Page({
   },
 
   freezeBasicScroll: function() {
-    // CRITICAL: We need to stop the CSS transition mid-flight and save the current position.
     const query = wx.createSelectorQuery();
     query.select('.prompter-content').fields({ computedStyle: ['transform'] });
     query.select('.prompter-viewport').boundingClientRect();
     
     query.exec((res) => {
-      // res[0].transform is like "matrix(1, 0, 0, 1, 0, -123.45)"
-      // We need to extract the Y value (-123.45)
-      
       const matrix = res[0].transform;
-      // console.log('Matrix:', matrix);
-      
-      let currentY = this.data.offsetY; // Fallback
+      let currentY = this.data.offsetY; 
       
       if (matrix && matrix !== 'none') {
         const values = matrix.split('(')[1].split(')')[0].split(',');
-        // Matrix format: a, b, c, d, tx, ty
         if (values.length === 6) {
           currentY = parseFloat(values[5]);
         }
       }
       
-      // Force set to current position with NO transition
       this.setData({
         isRunning: false,
         transitionStyle: 'none',
@@ -480,35 +449,60 @@ Page({
     });
   },
 
+  targetOffsetY: 0,
+  smartLoopId: null,
 
-  // --- 2. Smart Follow Logic ---
+  runSmartLoop: function() {
+    if (!this.data.isRunning) return;
+
+    const DEAD_ZONE = 0.1; 
+    const LERP_FACTOR = 0.4; 
+
+    const current = this.data.offsetY;
+    const target = this.targetOffsetY;
+    const diff = target - current;
+
+    if (Math.abs(diff) > DEAD_ZONE) {
+      const nextY = current + diff * LERP_FACTOR;
+      this.setData({
+        offsetY: nextY,
+        transitionStyle: 'none'
+      });
+    }
+
+    this.smartLoopId = this.requestLoop(this.runSmartLoop.bind(this));
+  },
+
+  requestLoop: function(cb) {
+    return (typeof this.animate === 'function' && typeof wx.requestAnimationFrame === 'function') 
+      ? wx.requestAnimationFrame(cb) 
+      : setTimeout(cb, 1000 / 60); 
+  },
 
   startSmartFollow: function() {
     this.measureLayout();
     this.setData({ isRunning: true });
 
-    this.matcher = new FuzzyTextMatcher(this.data.content);
+    let safeProgress = 0;
+    if (this.contentHeight > 0) {
+        const currentProgress = Math.abs(this.data.offsetY) / this.contentHeight;
+        safeProgress = Math.max(0, Math.min(1, currentProgress));
+    }
+    
+    const cleanScript = this.data.content.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '');
+    const startIndex = Math.floor(cleanScript.length * safeProgress);
+
+    this.matcher = new FuzzyTextMatcher(this.data.content, startIndex);
+    this.targetOffsetY = this.data.offsetY;
+    this.runSmartLoop();
 
     this.asrClient = new QwenASRClient({
       onText: (text) => {
-        console.log('🎙️ ASR:', text);
         const progress = this.matcher.match(text);
-        
         if (progress !== null) {
-          // Calculate Line Height Adjustment
-          // We want the MIDDLE of the current line to be on the focus line.
-          // Currently, progress represents the end of the spoken text.
           const lineHeight = this.data.fontSize * 1.6;
-          
-          // targetOffset = - (totalTextHeight * progress)
-          // To center the line, we adjust by half a line height
-          const targetOffset = - (this.contentHeight * progress) + (lineHeight / 2);
-          
-          // Smart Mode uses snappy transition
-          this.setData({
-            transitionStyle: 'transform 0.2s ease-out',
-            offsetY: targetOffset
-          });
+          const targetOffset = - (this.contentHeight * progress) - lineHeight;
+          this.targetOffsetY = targetOffset;
         }
       },
       onError: (err) => {}
@@ -522,10 +516,15 @@ Page({
       this.asrClient.stop();
       this.asrClient = null;
     }
-    // No need to freeze matrix for smart mode usually, 
-    // just stop updating is fine. But let's keep consistent state.
-    // For Smart Mode, we just stop accepting updates. 
-    // The last transition will finish naturally.
     this.setData({ isRunning: false });
+    
+    if (this.smartLoopId) {
+        if (typeof wx.cancelAnimationFrame === 'function') {
+            wx.cancelAnimationFrame(this.smartLoopId);
+        } else {
+            clearTimeout(this.smartLoopId);
+        }
+        this.smartLoopId = null;
+    }
   },
 })

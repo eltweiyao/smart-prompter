@@ -5,18 +5,23 @@
        User said "Click anywhere to stop", implies running state is "clean". 
        Let's hide header when running for immersion. -->
   <view class="header" style="padding-top: {{statusBarHeight}}px; opacity: {{isRunning ? 0 : 1}}; pointer-events: {{isRunning ? 'none' : 'auto'}};">
-    <view class="icon-btn" bindtap="goBack">
-      <text class="icon">←</text>
+    <view class="left-group">
+      <view class="icon-btn" bindtap="goBack">
+        <text class="icon">←</text>
+      </view>
+      <view class="icon-btn" bindtap="toggleSettings">
+        <text class="icon">⚙️</text>
+      </view>
     </view>
     
     <view class="mode-switch">
-      <view class="mode-item {{mode === 'basic' ? 'active' : ''}}" bindtap="switchMode" data-mode="basic">基础模式</view>
-      <view class="mode-item {{mode === 'smart' ? 'active' : ''}}" bindtap="switchMode" data-mode="smart">智能跟随</view>
+      <view class="mode-item {{mode === 'basic' ? 'active' : ''}}" bindtap="switchMode" data-mode="basic">基础</view>
+      <view class="mode-item {{mode === 'smart' ? 'active' : ''}}" bindtap="switchMode" data-mode="smart">跟随</view>
     </view>
 
-    <view class="icon-btn" bindtap="toggleSettings">
-      <text class="icon">⚙️</text>
-    </view>
+    <!-- Empty view to maintain space-between balance if needed, 
+         but we'll adjust CSS to avoid right-side overlap -->
+    <view class="right-placeholder"></view>
   </view>
 
   <!-- Focus Line Indicator (Lyrics Style) -->

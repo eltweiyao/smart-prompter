@@ -1,8 +1,8 @@
 {
   "miniprogramRoot": "miniprogram/",
   "projectname": "ai-smart-prompter",
-  "description": "AI Smart Prompter Mini Program",
-  "appid": "wxba4b089946ced6d0",
+  "description": "智提词",
+  "appid": "wxa511b541a1c867e6",
   "setting": {
     "urlCheck": true,
     "es6": true,
@@ -48,7 +48,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "2.19.4",
+  "libVersion": "3.13.1",
   "srcMiniprogramRoot": "miniprogram/",
   "packOptions": {
     "ignore": [],

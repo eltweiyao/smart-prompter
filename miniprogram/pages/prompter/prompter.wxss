@@ -10,12 +10,18 @@
 
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start; /* Align everything from left */
   align-items: center;
-  padding: 10rpx 30rpx; /* Reduced vertical padding */
+  padding: 10rpx 20rpx; 
   z-index: 20;
   transition: opacity 0.3s;
-  min-height: 80rpx; /* Ensure clickability */
+  min-height: 80rpx;
+}
+
+.left-group {
+  display: flex;
+  gap: 20rpx;
+  margin-right: 30rpx;
 }
 
 .icon-btn {
@@ -27,13 +33,17 @@
   align-items: center;
   justify-content: center;
 }
-.icon { font-size: 36rpx; color: #888; font-weight: bold; }
+.icon { font-size: 36rpx; color: #fff; font-weight: bold; }
 
 .mode-switch {
   display: flex;
   background: rgba(100,100,100,0.2);
   border-radius: 40rpx;
   padding: 4rpx;
+}
+
+.right-placeholder {
+  flex: 1; /* Pushes content but respects capsule button area */
 }
 .mode-item {
   padding: 10rpx 30rpx;
@@ -64,32 +74,32 @@
 }
 
 .padding-space {
-  height: 40vh; /* Align text start/end to 40% of screen */
+  height: 30vh; /* Align text start/end to 30% of screen */
 }
 
 /* Focus Line Indicator */
 .focus-line-container {
   position: absolute;
-  top: 40%; /* Move focus line above center */
+  top: 30%; /* Move focus line above center */
   left: 0;
   width: 100%;
-  height: 2rpx;
+  height: 4rpx;
   transform: translateY(-50%);
   pointer-events: none; 
   z-index: 5;
   display: flex;
   align-items: center;
-  opacity: 0.3;
+  opacity: 0.6;
 }
 .focus-arrow {
   color: #007aff;
-  font-size: 24rpx;
+  font-size: 40rpx;
   margin-left: 10rpx;
   margin-right: 10rpx;
 }
 .focus-line {
   flex: 1;
-  height: 2rpx;
+  height: 4rpx;
   background: #007aff;
 }
 

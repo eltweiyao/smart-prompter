@@ -1,6 +1,5 @@
 {
-  "navigationBarTitleText": "题词拍摄",
-  "navigationBarStyle": "custom", 
+  "navigationStyle": "custom",
   "disableScroll": true,
   "usingComponents": {}
 }
