@@ -1,0 +1,32 @@
+.container-editor {
+  padding: 30rpx;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.input-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  padding: 20rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  margin-bottom: 20rpx;
+}
+.input-content {
+  flex: 1;
+  width: 100%;
+  font-size: 30rpx;
+  padding: 20rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  margin-bottom: 40rpx;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+.btn-save {
+  background: #007aff;
+  color: #fff;
+  border-radius: 50rpx;
+  width: 100%;
+}

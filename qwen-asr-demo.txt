@@ -1,0 +1,164 @@
+/**
+ * Qwen-ASR Realtime WebSocket 客户端（Node.js版）
+ * 功能：
+ * - 支持 VAD 模式和 Manual 模式
+ * - 发送 session.update 启动会话
+ * - 持续发送音频块 input_audio_buffer.append
+ * - Manual 模式下发送 input_audio_buffer.commit
+ * - 收到 completed 事件后关闭连接并停止发送
+ */
+
+const WebSocket = require('ws');
+const fs = require('fs');
+
+// ===== 配置 =====
+// 新加坡和北京地域的API Key不同。获取API Key：https://help.aliyun.com/zh/model-studio/get-api-key
+// 若没有配置环境变量，请用百炼API Key将下行替换为：const API_KEY = "sk-xxx"
+const API_KEY = process.env.DASHSCOPE_API_KEY || 'sk-xxx';
+const MODEL = 'qwen3-asr-flash-realtime';
+const enableServerVad = true; // true为VAD模式，false为Manual模式
+const localAudioPath = 'your_audio_file.pcm'; // PCM16、16kHz音频文件路径
+
+// 以下是北京地域baseUrl，如果使用新加坡地域的模型，需要将baseUrl替换为：wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime
+const baseUrl = 'wss://dashscope.aliyuncs.com/api-ws/v1/realtime';
+const url = `${baseUrl}?model=${MODEL}`;
+
+console.log(`Connecting to server: ${url}`);
+
+// ===== 状态控制 =====
+let isRunning = true;
+
+// ===== 建立连接 =====
+const ws = new WebSocket(url, {
+    headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'OpenAI-Beta': 'realtime=v1'
+    }
+});
+
+// ===== 事件绑定 =====
+ws.on('open', () => {
+    console.log('[WebSocket] Connected to server.');
+    sendSessionUpdate();
+    // 启动音频发送线程
+    sendAudio(localAudioPath);
+});
+
+ws.on('message', (message) => {
+    try {
+        const data = JSON.parse(message);
+        console.log('[Received Event]:', JSON.stringify(data, null, 2));
+
+        // 收到完成事件
+        if (data.type === 'conversation.item.input_audio_transcription.completed') {
+            console.log(`[Final Transcript] ${data.transcript}`);
+            console.log('[Action] Closing WebSocket connection after completion...');
+            isRunning = false; // 停止发送音频
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.close(1000, 'ASR completed');
+            }
+        }
+    } catch (e) {
+        console.error('[Error] Failed to parse message:', message);
+    }
+});
+
+ws.on('close', (code, reason) => {
+    console.log(`[WebSocket] Connection closed: ${code} - ${reason}`);
+});
+
+ws.on('error', (err) => {
+    console.error('[WebSocket Error]', err);
+});
+
+// ===== 会话更新 =====
+function sendSessionUpdate() {
+    const eventNoVad = {
+        event_id: 'event_123',
+        type: 'session.update',
+        session: {
+            modalities: ['text'],
+            input_audio_format: 'pcm',
+            sample_rate: 16000,
+            input_audio_transcription: {
+                language: 'zh'
+            },
+            turn_detection: null
+        }
+    };
+
+    const eventVad = {
+        event_id: 'event_123',
+        type: 'session.update',
+        session: {
+            modalities: ['text'],
+            input_audio_format: 'pcm',
+            sample_rate: 16000,
+            input_audio_transcription: {
+                language: 'zh'
+            },
+            turn_detection: {
+                type: 'server_vad',
+                threshold: 0.0,
+                silence_duration_ms: 400
+            }
+        }
+    };
+
+    if (enableServerVad) {
+        console.log('[Send Event] VAD Mode:\n', JSON.stringify(eventVad, null, 2));
+        ws.send(JSON.stringify(eventVad));
+    } else {
+        console.log('[Send Event] Manual Mode:\n', JSON.stringify(eventNoVad, null, 2));
+        ws.send(JSON.stringify(eventNoVad));
+    }
+}
+
+// ===== 发送音频文件流 =====
+function sendAudio(audioPath) {
+    setTimeout(() => {
+        console.log(`[File Read Start] ${audioPath}`);
+        const buffer = fs.readFileSync(audioPath);
+
+        let offset = 0;
+        const chunkSize = 3200; // 约0.1s的PCM16音频
+
+        function sendChunk() {
+            if (!isRunning) return;
+            if (offset >= buffer.length) {
+                console.log('[File Read End]');
+                if (!enableServerVad && ws.readyState === WebSocket.OPEN) {
+                    const commitEvent = {
+                        event_id: 'event_789',
+                        type: 'input_audio_buffer.commit'
+                    };
+                    ws.send(JSON.stringify(commitEvent));
+                    console.log('[Send Commit Event]');
+                }
+                return;
+            }
+
+            if (ws.readyState !== WebSocket.OPEN) {
+                console.log('[Stop] WebSocket is not open.');
+                return;
+            }
+
+            const chunk = buffer.slice(offset, offset + chunkSize);
+            offset += chunkSize;
+
+            const encoded = chunk.toString('base64');
+            const appendEvent = {
+                event_id: `event_${Date.now()}`,
+                type: 'input_audio_buffer.append',
+                audio: encoded
+            };
+
+            ws.send(JSON.stringify(appendEvent));
+            console.log(`[Send Audio Event] ${appendEvent.event_id}`);
+
+            setTimeout(sendChunk, 100); // 模拟实时发送
+        }
+
+        sendChunk();
+    }, 3000); // 等待会话配置完成
+}

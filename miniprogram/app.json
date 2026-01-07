@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/editor/editor",
+    "pages/prompter/prompter"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "AI 灵动题词器",
+    "navigationBarTextStyle": "black",
+    "pageOrientation": "auto"
+  },
+  "sitemapLocation": "sitemap.json"
+}

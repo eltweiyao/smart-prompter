@@ -1,0 +1,106 @@
+<view class="container-prompter" style="background-color: {{bgColor}};">
+  
+  <!-- Header (Back, Mode Switch, Settings) -->
+  <!-- Show Header ONLY when NOT running, or allow it to be toggled? 
+       User said "Click anywhere to stop", implies running state is "clean". 
+       Let's hide header when running for immersion. -->
+  <view class="header" style="padding-top: {{statusBarHeight}}px; opacity: {{isRunning ? 0 : 1}}; pointer-events: {{isRunning ? 'none' : 'auto'}};">
+    <view class="icon-btn" bindtap="goBack">
+      <text class="icon">←</text>
+    </view>
+    
+    <view class="mode-switch">
+      <view class="mode-item {{mode === 'basic' ? 'active' : ''}}" bindtap="switchMode" data-mode="basic">基础模式</view>
+      <view class="mode-item {{mode === 'smart' ? 'active' : ''}}" bindtap="switchMode" data-mode="smart">智能跟随</view>
+    </view>
+
+    <view class="icon-btn" bindtap="toggleSettings">
+      <text class="icon">⚙️</text>
+    </view>
+  </view>
+
+  <!-- Focus Line Indicator (Lyrics Style) -->
+  <view class="focus-line-container">
+    <view class="focus-arrow">▶</view>
+    <view class="focus-line"></view>
+  </view>
+
+  <!-- Prompter Text Area (CSS Transform Engine) -->
+  <view 
+    class="prompter-viewport"
+    bindtouchstart="onTouchStart"
+    bindtouchmove="onTouchMove"
+    bindtouchend="onTouchEnd"
+    bindtap="onScreenTap"
+  >
+    <view 
+      class="prompter-content"
+      style="transform: translateY({{offsetY}}px); transition: {{transitionStyle}};"
+    >
+      <view class="padding-space"></view>
+      <view class="text-content" style="font-size: {{fontSize}}px; line-height: 1.6; color: {{fontColor}};">
+        <text>{{content}}</text>
+      </view>
+      
+      <view wx:if="{{mode === 'smart' && isRunning}}" class="ai-feedback">
+        <text class="ai-status">🎙️ AI 正在聆听...</text>
+      </view>
+      
+      <view class="padding-space"></view>
+    </view>
+  </view>
+
+  <!-- Bottom Controls (Now Centered) -->
+  <view class="controls" wx:if="{{!isRunning}}">
+    <!-- Basic Mode Controls -->
+    <block wx:if="{{mode === 'basic'}}">
+      <view class="btn-play-round" bindtap="startBasicScroll">
+        <view class="icon-play"></view>
+      </view>
+    </block>
+
+    <!-- Smart Mode Controls -->
+    <block wx:if="{{mode === 'smart'}}">
+      <view class="btn-play-round btn-play-ai" bindtap="startSmartFollow">
+        <view class="icon-play"></view> <!-- Keep Play icon for "Start", or could use Mic -->
+      </view>
+    </block>
+  </view>
+
+  <!-- Settings Popup -->
+  <view class="settings-panel" wx:if="{{showSettings}}">
+    <view class="setting-group">
+      <view class="setting-title">显示设置</view>
+      <view class="setting-item">
+        <text>字号 ({{fontSize}}px)</text>
+        <slider min="20" max="80" value="{{fontSize}}" bindchange="onFontSizeChange" />
+      </view>
+      <view class="setting-item" wx:if="{{mode === 'basic'}}">
+        <text>滚动速度 ({{speed}})</text>
+        <slider min="1" max="20" value="{{speed}}" bindchange="onSpeedChange" />
+      </view>
+    </view>
+
+    <view class="setting-group">
+      <view class="setting-title">颜色设置</view>
+      <view class="color-row">
+        <text>文字：</text>
+        <view class="color-options">
+          <view class="color-circle" style="background:white" bindtap="setFontColor" data-color="#ffffff"></view>
+          <view class="color-circle" style="background:black" bindtap="setFontColor" data-color="#000000"></view>
+          <view class="color-circle" style="background:#ffd700" bindtap="setFontColor" data-color="#ffd700"></view>
+        </view>
+      </view>
+      <view class="color-row">
+        <text>背景：</text>
+        <view class="color-options">
+          <view class="color-circle" style="background:black; border: 1px solid #333;" bindtap="setBgColor" data-color="#000000"></view>
+          <view class="color-circle" style="background:white; border: 1px solid #ccc;" bindtap="setBgColor" data-color="#ffffff"></view>
+          <view class="color-circle" style="background:#00b140" bindtap="setBgColor" data-color="#00b140"></view>
+        </view>
+      </view>
+    </view>
+
+    <button class="btn-close-settings" bindtap="toggleSettings">关闭</button>
+  </view>
+</view>

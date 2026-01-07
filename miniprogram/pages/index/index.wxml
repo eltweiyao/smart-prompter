@@ -1,0 +1,57 @@
+<view class="container-home">
+  <!-- Input Area -->
+  <view class="input-section" style="height: {{inputHeight}}rpx;">
+    <textarea 
+      class="script-input" 
+      placeholder="在此输入或粘贴台本内容..." 
+      maxlength="-1" 
+      value="{{content}}"
+      bindinput="onInput"
+    ></textarea>
+    <view class="input-footer">
+      <view class="resize-controls">
+        <view class="resize-btn" bindtap="adjustInputHeight" data-delta="-100">➖</view>
+        <text class="resize-label">高度</text>
+        <view class="resize-btn" bindtap="adjustInputHeight" data-delta="100">➕</view>
+      </view>
+      <view class="right-actions">
+        <text class="char-count">{{content.length}} 字</text>
+        <view class="clear-btn" bindtap="clearContent" wx:if="{{content.length > 0}}">清空</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Controls Section -->
+  <view class="controls-section">
+    <view class="section-title">屏幕方向</view>
+    <view class="orientation-selector">
+      <view class="option {{orientation === 'auto' ? 'active' : ''}}" bindtap="setOrientation" data-type="auto">
+        <text>🔄 自动</text>
+      </view>
+      <view class="option {{orientation === 'portrait' ? 'active' : ''}}" bindtap="setOrientation" data-type="portrait">
+        <text>📱 竖屏</text>
+      </view>
+      <view class="option {{orientation === 'landscape' ? 'active' : ''}}" bindtap="setOrientation" data-type="landscape">
+        <text>🖥️ 横屏</text>
+      </view>
+    </view>
+
+    <button class="btn-start" bindtap="startPrompter">开始题词</button>
+  </view>
+
+  <!-- Recent History -->
+  <view class="history-section">
+    <view class="section-title">最近台本</view>
+    <scroll-view scroll-x class="history-list" enable-flex>
+      <block wx:if="{{recentScripts.length > 0}}">
+        <view class="history-card" wx:for="{{recentScripts}}" wx:key="id" bindtap="loadHistory" data-item="{{item}}">
+          <view class="card-content">{{item.content}}</view>
+          <view class="card-date">{{item.displayTime}}</view>
+        </view>
+      </block>
+      <block wx:else>
+        <view class="empty-history">暂无记录</view>
+      </block>
+    </scroll-view>
+  </view>
+</view>
