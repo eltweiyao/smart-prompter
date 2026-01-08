@@ -73,23 +73,24 @@
   will-change: transform;
 }
 
+/* Padding space is now handled via inline styles for dynamic sizing */
 .padding-space {
-  height: 30vh; /* Align text start/end to 30% of screen */
+  /* height set by inline style */
 }
 
 /* Focus Line Indicator */
 .focus-line-container {
   position: absolute;
-  top: 30%; /* Move focus line above center */
+  /* top set by inline style */
   left: 0;
   width: 100%;
   height: 4rpx;
   transform: translateY(-50%);
   pointer-events: none; 
-  z-index: 5;
+  z-index: 25;
   display: flex;
   align-items: center;
-  opacity: 0.6;
+  opacity: 0.8;
 }
 .focus-arrow {
   color: #007aff;
@@ -104,16 +105,23 @@
 }
 
 
-.ai-feedback {
-  margin-top: 20rpx;
+.ai-feedback-fixed {
+  position: absolute;
+  bottom: 80rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
   animation: pulse 2s infinite;
 }
 .ai-status {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #007aff;
-  background: rgba(0,122,255,0.1);
-  padding: 8rpx 20rpx;
-  border-radius: 20rpx;
+  background: rgba(0,122,255,0.15);
+  backdrop-filter: blur(4px);
+  padding: 12rpx 30rpx;
+  border-radius: 40rpx;
+  border: 1px solid rgba(0,122,255,0.3);
+  white-space: nowrap;
 }
 
 @keyframes pulse {
@@ -170,17 +178,6 @@
   margin-left: 10rpx; /* Visual center adjustment */
 }
 
-.btn-primary, .btn-ai {
-  /* Legacy styles - keeping just in case or for AI mode text button if needed, 
-     but we will likely use round button for basic too */
-  background: #007aff;
-  color: #fff;
-  border-radius: 50rpx;
-  padding: 0 80rpx;
-  font-size: 32rpx;
-}
-.btn-ai { background: #5856d6; }
-
 /* Settings Panel */
 .settings-panel {
   position: absolute;
@@ -199,8 +196,47 @@
 .setting-title { font-size: 32rpx; font-weight: bold; margin-bottom: 20rpx; color: #333; }
 .setting-item { margin-bottom: 20rpx; }
 .setting-item text { color: #666; font-size: 26rpx; }
+.switch-item { display: flex; justify-content: space-between; align-items: center; }
+
 .color-row { display: flex; align-items: center; margin-bottom: 20rpx; }
 .color-row text { width: 100rpx; font-size: 28rpx; color: #666; }
 .color-options { display: flex; gap: 20rpx; }
 .color-circle { width: 60rpx; height: 60rpx; border-radius: 50%; box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.2); }
 .btn-close-settings { background: #f0f0f0; color: #333; margin-top: 10rpx; }
+
+/* Focus Masks */
+.focus-mask-top, .focus-mask-bottom {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  z-index: 15; /* Above text, below header/controls */
+  pointer-events: none;
+}
+.focus-mask-top {
+  top: 0;
+}
+/* Bottom mask top position is set via inline style */
+
+/* Countdown Overlay */
+.countdown-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  background: rgba(0,0,0,0.3);
+}
+.countdown-text {
+  font-size: 160rpx;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 4rpx 10rpx rgba(0,0,0,0.5);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}

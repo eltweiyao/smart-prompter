@@ -36,7 +36,7 @@
       </view>
     </view>
 
-    <button class="btn-start" bindtap="startPrompter">开始题词</button>
+    <button class="btn-start" bindtap="startPrompter">开始提词</button>
   </view>
 
   <!-- Recent History -->

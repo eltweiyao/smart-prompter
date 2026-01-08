@@ -10,76 +10,55 @@ const ASR_CONFIG = {
   MODEL: 'qwen3-asr-flash-realtime'
 };
 
-// --- Helper: Fuzzy Text Matcher (Tolerant to ASR errors) ---
-class FuzzyTextMatcher {
+// --- Helper: Anchor Text Matcher (Optimized for Stream Alignment) ---
+class AnchorTextMatcher {
   constructor(fullScript, startIndex = 0) {
     // Keep only Chinese, English, Numbers.
     this.script = fullScript.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '');
-    this.originalScript = fullScript;
+    this.scriptLength = this.script.length;
     this.lastIndex = startIndex;
-    console.log('FuzzyMatcher initialized. Script len:', this.script.length, 'Start:', startIndex);
+    this.buffer = ''; 
+    this.searchWindow = 300; // Lookahead window
+    console.log('AnchorMatcher initialized. Script len:', this.script.length, 'Start:', startIndex);
   }
 
-  match(partialText) {
-    if (!partialText) return null;
-    const cleanASR = partialText.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '');
-    if (cleanASR.length === 0) return null;
+  match(textDelta) {
+    if (!textDelta) return null;
+    const cleanDelta = textDelta.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '');
+    if (!cleanDelta) return null;
 
-    // Parameters
-    const SEARCH_WINDOW = 200; // Look ahead 200 chars
-    const MATCH_THRESHOLD = 0.6; // 60% similarity required
+    this.buffer += cleanDelta;
+    // Cap buffer to keep search fast
+    if (this.buffer.length > 60) this.buffer = this.buffer.slice(-60);
+
+    const windowEnd = Math.min(this.scriptLength, this.lastIndex + this.searchWindow);
+    const scriptWindow = this.script.substring(this.lastIndex, windowEnd);
     
-    // Optimization: If exact match exists, take it immediately
-    const exactIdx = this.script.indexOf(cleanASR, this.lastIndex);
-    if (exactIdx !== -1 && (exactIdx - this.lastIndex) < SEARCH_WINDOW) {
-      this.lastIndex = exactIdx + cleanASR.length;
-      return this.lastIndex / this.script.length;
-    }
-
-    // Heuristic: Compare cleanASR with a slice of script
-    const compareLen = Math.min(cleanASR.length * 2 + 10, SEARCH_WINDOW); 
-    const scriptSlice = this.script.substr(this.lastIndex, compareLen);
+    // Search for longest suffix of buffer in script window
+    const maxSuffixLen = Math.min(this.buffer.length, 20);
     
-    const { score, matchEndOffset } = this.calculateFuzzyScore(cleanASR, scriptSlice);
-
-    // console.log(`Fuzzy: Input="${cleanASR}" Score=${score.toFixed(2)}`);
-
-    if (score > MATCH_THRESHOLD) {
-      // Valid match found
-      // Update index to: lastIndex + relative match end
-      this.lastIndex = this.lastIndex + matchEndOffset;
-      return this.lastIndex / this.script.length;
-    }
-
-    return null;
-  }
-
-  // Calculates similarity score (0-1) and end position
-  calculateFuzzyScore(asr, scriptChunk) {
-    if (!scriptChunk) return { score: 0, matchEndOffset: 0 };
-
-    let scriptCursor = 0;
-    let matchCount = 0;
-    let lastMatchIndex = 0;
-
-    for (let i = 0; i < asr.length; i++) {
-      const char = asr[i];
-      // Find this char in scriptChunk starting from scriptCursor
-      const foundIdx = scriptChunk.indexOf(char, scriptCursor);
+    for (let len = maxSuffixLen; len >= 2; len--) {
+      const suffix = this.buffer.slice(-len);
       
-      if (foundIdx !== -1) {
-        matchCount++;
-        scriptCursor = foundIdx + 1; // Advance script cursor
-        lastMatchIndex = foundIdx + 1; // Record end of this char match
+      // Adaptive threshold: CJK needs fewer chars than English
+      const isCJK = /[\u4e00-\u9fa5]/.test(suffix);
+      if (!isCJK && len < 4) continue; 
+
+      const idx = scriptWindow.indexOf(suffix);
+      if (idx !== -1) {
+        const newIndex = this.lastIndex + idx + len;
+        if (newIndex > this.lastIndex) {
+          this.lastIndex = newIndex;
+          return this.lastIndex / this.scriptLength;
+        }
       }
     }
-
-    const score = matchCount / asr.length;
-    return { score, matchEndOffset: lastMatchIndex };
+    return null;
   }
   
   reset() {
     this.lastIndex = 0;
+    this.buffer = '';
   }
 }
 
@@ -257,6 +236,12 @@ Page({
     bgColor: '#000000',
     fontColor: '#ffffff',
     fontSize: 40,
+    lineHeight: 1.6,
+    letterSpacing: 0,
+    baselinePercent: 50,
+    focusEnabled: false,
+    countdown: 0,
+    countdownDuration: 0,
     mode: 'basic', 
     speed: 5,
     isRunning: false,
@@ -278,6 +263,9 @@ Page({
     const sysInfo = wx.getSystemInfoSync();
     this.setData({ statusBarHeight: sysInfo.statusBarHeight });
 
+    // Load User Settings
+    this.loadSettings();
+
     if (options.content) {
       const content = decodeURIComponent(options.content);
       this.setData({ content: content });
@@ -294,6 +282,38 @@ Page({
         }
       }, 100);
     }
+  },
+
+  loadSettings: function() {
+    const settings = wx.getStorageSync('prompter_settings');
+    if (settings) {
+      this.setData({
+        fontSize: settings.fontSize || 40,
+        lineHeight: settings.lineHeight || 1.6,
+        letterSpacing: settings.letterSpacing || 0,
+        baselinePercent: settings.baselinePercent || 50,
+        focusEnabled: settings.focusEnabled || false,
+        speed: settings.speed || 5,
+        countdownDuration: settings.countdownDuration !== undefined ? settings.countdownDuration : 0,
+        fontColor: settings.fontColor || '#ffffff',
+        bgColor: settings.bgColor || '#000000'
+      });
+    }
+  },
+
+  saveSettings: function() {
+    const settings = {
+      fontSize: this.data.fontSize,
+      lineHeight: this.data.lineHeight,
+      letterSpacing: this.data.letterSpacing,
+      baselinePercent: this.data.baselinePercent,
+      focusEnabled: this.data.focusEnabled,
+      speed: this.data.speed,
+      countdownDuration: this.data.countdownDuration,
+      fontColor: this.data.fontColor,
+      bgColor: this.data.bgColor
+    };
+    wx.setStorageSync('prompter_settings', settings);
   },
 
   onUnload: function() {
@@ -352,15 +372,54 @@ Page({
     }
   },
 
+  onLineHeightChange: function(e) {
+    this.setData({ lineHeight: e.detail.value });
+    setTimeout(() => this.measureLayout(), 300);
+    this.saveSettings();
+  },
+  onLetterSpacingChange: function(e) {
+    this.setData({ letterSpacing: e.detail.value });
+    setTimeout(() => this.measureLayout(), 300);
+    this.saveSettings();
+  },
+  onBaselineChange: function(e) {
+    this.setData({ baselinePercent: e.detail.value });
+    this.saveSettings();
+    // No need to remeasure layout, but might need to adjust current offset if not running
+  },
+  onFocusToggle: function(e) {
+    this.setData({ focusEnabled: e.detail.value });
+    this.saveSettings();
+  },
+
   onFontSizeChange: function(e) { 
     this.setData({ fontSize: e.detail.value }); 
     setTimeout(() => this.measureLayout(), 300);
+    this.saveSettings();
   },
-  onSpeedChange: function(e) { this.setData({ speed: e.detail.value }); },
-  setFontColor: function(e) { this.setData({ fontColor: e.currentTarget.dataset.color }); },
-  setBgColor: function(e) { this.setData({ bgColor: e.currentTarget.dataset.color }); },
+  onSpeedChange: function(e) { 
+    this.setData({ speed: e.detail.value }); 
+    this.saveSettings();
+  },
+  onCountdownDurationChange: function(e) { 
+    this.setData({ countdownDuration: e.detail.value }); 
+    this.saveSettings();
+  },
+  setFontColor: function(e) { 
+    this.setData({ fontColor: e.currentTarget.dataset.color }); 
+    this.saveSettings();
+  },
+  setBgColor: function(e) { 
+    this.setData({ bgColor: e.currentTarget.dataset.color }); 
+    this.saveSettings();
+  },
 
   stopAll: function() {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+      this.setData({ countdown: 0 });
+    }
     if (this.data.mode === 'basic') {
       this.freezeBasicScroll();
     } else {
@@ -408,7 +467,28 @@ Page({
       setTimeout(() => this.startBasicScroll(), 100);
       return;
     }
-    
+
+    // Countdown Logic
+    const duration = this.data.countdownDuration;
+    if (duration <= 0) {
+      this.runBasicScrollAnimation();
+      return;
+    }
+
+    this.setData({ countdown: duration });
+    this.countdownTimer = setInterval(() => {
+      if (this.data.countdown > 1) {
+        this.setData({ countdown: this.data.countdown - 1 });
+      } else {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+        this.setData({ countdown: 0 });
+        this.runBasicScrollAnimation();
+      }
+    }, 1000);
+  },
+
+  runBasicScrollAnimation: function() {
     const currentOffset = this.data.offsetY;
     const targetOffset = -this.contentHeight;
     const distance = Math.abs(targetOffset - currentOffset);
@@ -492,7 +572,7 @@ Page({
     const cleanScript = this.data.content.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '');
     const startIndex = Math.floor(cleanScript.length * safeProgress);
 
-    this.matcher = new FuzzyTextMatcher(this.data.content, startIndex);
+    this.matcher = new AnchorTextMatcher(this.data.content, startIndex);
     this.targetOffsetY = this.data.offsetY;
     this.runSmartLoop();
 
@@ -500,8 +580,9 @@ Page({
       onText: (text) => {
         const progress = this.matcher.match(text);
         if (progress !== null) {
-          const lineHeight = this.data.fontSize * 1.6;
-          const targetOffset = - (this.contentHeight * progress) - lineHeight;
+          // Alignment: (viewportHeight / 2) is 0 because of the 50vh padding-space.
+          // When progress is 0, the top of text is at the 50% line when offsetY is 0.
+          const targetOffset = - (this.contentHeight * progress);
           this.targetOffsetY = targetOffset;
         }
       },
