@@ -142,7 +142,7 @@ class QwenASRClient {
           },
           turn_detection: {
             type: 'server_vad',
-            threshold: 0.3,
+            threshold: 0.1,
             silence_duration_ms: 200
           }
         }
