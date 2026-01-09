@@ -12,5 +12,11 @@
     "pageOrientation": "auto"
   },
   "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading":"requiredComponents"
+  "lazyCodeLoading":"requiredComponents",
+  "plugins": {
+    "wechat-si": {
+      "version": "0.3.5",
+      "provider": "wx069ba97219f66d99"
+    }
+  }
 }

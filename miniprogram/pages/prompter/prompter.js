@@ -1,14 +1,6 @@
-const recorderManager = wx.getRecorderManager();
+const plugin = requirePlugin("wechat-si");
+const manager = plugin.getRecordRecognitionManager();
 let scrollTimer = null;
-
-// --- Configuration ---
-// Qwen-ASR Realtime API Configuration
-const ASR_CONFIG = {
-  URL: 'wss://dashscope.aliyuncs.com/api-ws/v1/realtime', 
-  // REPLACE WITH YOUR DASHSCOPE API KEY
-  TOKEN: 'sk-bf789278af0b4c80ab602166a061b5ac',
-  MODEL: 'qwen3-asr-flash-realtime'
-};
 
 // --- Helper: Anchor Text Matcher (Optimized for Stream Alignment) ---
 class AnchorTextMatcher {
@@ -62,171 +54,7 @@ class AnchorTextMatcher {
   }
 }
 
-// --- Service: Qwen Realtime ASR Client (OpenAI Protocol) ---
-class QwenASRClient {
-  constructor(callbacks) {
-    this.callbacks = callbacks; 
-    this.socket = null;
-    this.isRecording = false;
-    this.isConnected = false;
-    
-    // Bind Recorder Events ONCE during initialization
-    this.bindRecorderEvents();
-  }
-  
-  bindRecorderEvents() {
-    let frameCount = 0;
-    
-    recorderManager.onFrameRecorded((res) => {
-      // Strict guard: Only process if THIS client is active
-      if (this.socket && this.isRecording && this.isConnected) {
-        frameCount++;
-        if (frameCount % 50 === 0) console.log(`🎤 Sending Audio Frames... (${frameCount})`);
 
-        const base64Audio = wx.arrayBufferToBase64(res.frameBuffer);
-        
-        const appendEvent = {
-          type: 'input_audio_buffer.append',
-          audio: base64Audio
-        };
-        
-        this.socket.send({ 
-          data: JSON.stringify(appendEvent),
-          fail: (err) => {
-             // console.error('Send Audio Failed:', err);
-             // Suppress send errors to avoid spam
-             if (err.errMsg && err.errMsg.includes('sendData error')) {
-               this.stop();
-             }
-          }
-        });
-      }
-    });
-    
-    recorderManager.onError((err) => {
-      // Ignore "recorder not start" which happens when we try to stop an idle mic
-      if (err.errMsg && err.errMsg.includes('recorder not start')) return;
-      
-      console.error('❌ Microphone Error:', err);
-    });
-  }
-
-  start() {
-    this.isRecording = true;
-    this.isConnected = false;
-    
-    console.log('--- ASR Client Starting (Realtime API) ---');
-    const wssUrl = `${ASR_CONFIG.URL}?model=${ASR_CONFIG.MODEL}`;
-    
-    this.socket = wx.connectSocket({
-      url: wssUrl,
-      header: {
-        'Authorization': `Bearer ${ASR_CONFIG.TOKEN}`,
-        'OpenAI-Beta': 'realtime=v1'
-      },
-      success: () => console.log('Socket connecting...')
-    });
-
-    this.socket.onOpen(() => {
-      console.log('✅ ASR Socket Connected');
-      this.isConnected = true;
-      
-      const sessionUpdate = {
-        type: 'session.update',
-        session: {
-          modalities: ['text'], 
-          input_audio_format: 'pcm',
-          input_audio_transcription: {
-             model: ASR_CONFIG.MODEL,
-             enable_intermediate_result: true
-          },
-          turn_detection: {
-            type: 'server_vad',
-            threshold: 0.3,
-            silence_duration_ms: 200
-          }
-        }
-      };
-      
-      this.socket.send({ data: JSON.stringify(sessionUpdate) });
-      this.startMic();
-    });
-    
-    this.socket.onMessage((res) => {
-      try {
-        const data = JSON.parse(res.data);
-
-        if (data.type === 'error') {
-           console.error('❌ ASR Error Event:', JSON.stringify(data.error));
-           return;
-        }
-
-        if (data.type === 'session.created') console.log('✅ Session Created');
-        
-        // Handle all possible text delta events for the protocol
-        if (data.type === 'response.audio_transcript.delta' || 
-            data.type === 'conversation.item.input_audio_transcription.delta' ||
-            data.type === 'input_audio_buffer.transcription.delta') {
-           const text = data.delta;
-           if (text) {
-             console.log('📝 Delta:', text);
-             this.callbacks.onText(text);
-           }
-        }
-
-        if (data.type === 'conversation.item.input_audio_transcription.completed') {
-           const text = data.transcript;
-           console.log('✅ Sentence Completed:', text);
-           if (text) this.callbacks.onText(text);
-        }
-      } catch (e) {
-        console.error('ASR Parse Error', e);
-      }
-    });
-
-    this.socket.onError((err) => {
-      console.error('❌ ASR Socket Error', err);
-      this.isConnected = false;
-      this.stop();
-    });
-    
-    this.socket.onClose((res) => {
-      console.log('⚠️ ASR Socket Closed', res);
-      this.isConnected = false;
-      this.stop();
-    });
-  }
-
-  startMic() {
-    console.log('🎤 Starting Microphone...');
-    
-    try {
-      recorderManager.stop();
-    } catch(e) {}
-
-    setTimeout(() => {
-      if (!this.isConnected || !this.isRecording) return; 
-
-      recorderManager.start({
-        format: 'PCM',
-        sampleRate: 16000,
-        numberOfChannels: 1,
-        frameSize: 1.0, // 1KB stable for network
-        duration: 600000 
-      });
-    }, 100);
-  }
-
-  stop() {
-    this.isRecording = false;
-    this.isConnected = false;
-    recorderManager.stop();
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
-    }
-  }
-}
 
 Page({
   data: {
@@ -255,7 +83,6 @@ Page({
   // Internal State
   contentHeight: 0,
   viewportHeight: 0, 
-  asrClient: null,
   matcher: null,
   lastTouchY: 0, 
 
@@ -576,27 +403,40 @@ Page({
     this.targetOffsetY = this.data.offsetY;
     this.runSmartLoop();
 
-    this.asrClient = new QwenASRClient({
-      onText: (text) => {
-        const progress = this.matcher.match(text);
-        if (progress !== null) {
-          // Alignment: (viewportHeight / 2) is 0 because of the 50vh padding-space.
-          // When progress is 0, the top of text is at the 50% line when offsetY is 0.
-          const targetOffset = - (this.contentHeight * progress);
-          this.targetOffsetY = targetOffset;
+    // WechatSI Logic
+    this.lastRecognizedLength = 0;
+    
+    manager.onRecognize = (res) => {
+        const text = res.result;
+        const delta = text.slice(this.lastRecognizedLength);
+        this.lastRecognizedLength = text.length;
+        
+        if (delta) {
+             const progress = this.matcher.match(delta);
+             if (progress !== null) {
+                const targetOffset = - (this.contentHeight * progress);
+                this.targetOffsetY = targetOffset;
+             }
         }
-      },
-      onError: (err) => {}
-    });
+    }
+    
+    manager.onStop = (res) => {
+        // Handle restart if still running
+        if (this.data.isRunning) {
+            this.lastRecognizedLength = 0;
+            manager.start({ duration: 60000, lang: "zh_CN" });
+        }
+    }
+    
+    manager.onError = (res) => {
+        console.error("ASR Error", res);
+    }
 
-    this.asrClient.start();
+    manager.start({ duration: 60000, lang: "zh_CN" });
   },
 
   stopSmartFollow: function() {
-    if (this.asrClient) {
-      this.asrClient.stop();
-      this.asrClient = null;
-    }
+    manager.stop();
     this.setData({ isRunning: false });
     
     if (this.smartLoopId) {
