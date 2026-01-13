@@ -1,7 +1,7 @@
 <view class="container-prompter" style="background-color: {{bgColor}};">
   
   <!-- Header -->
-  <view class="header" style="padding-top: {{statusBarHeight}}px; opacity: {{isRunning ? 0 : 1}}; pointer-events: {{isRunning ? 'none' : 'auto'}};">
+  <view class="header {{isLandscape ? 'header-landscape' : ''}}" style="padding-top: {{isLandscape ? 5 : statusBarHeight}}px; opacity: {{isRunning ? 0 : 1}}; pointer-events: {{isRunning ? 'none' : 'auto'}};">
     <view class="left-group">
       <view class="icon-btn" bindtap="goBack">
         <text class="icon">←</text>
@@ -44,7 +44,7 @@
       <!-- Dynamic Padding based on Baseline -->
       <view class="padding-space" style="height: {{baselinePercent}}vh;"></view>
       
-      <view class="text-content" style="font-size: {{fontSize}}px; line-height: {{lineHeight}}; letter-spacing: {{letterSpacing}}px; color: {{fontColor}};">
+      <view class="text-content" style="font-size: {{fontSize}}px; line-height: {{lineHeight}}; letter-spacing: {{letterSpacing}}px; text-align: {{textAlign}}; color: {{fontColor}};">
         <text>{{content}}</text>
       </view>
 
@@ -93,6 +93,14 @@
         <view class="setting-item">
           <text>字间距 ({{letterSpacing}}px)</text>
           <slider min="0" max="10" step="1" value="{{letterSpacing}}" bindchange="onLetterSpacingChange" />
+        </view>
+        <view class="setting-item">
+          <text>对齐方式</text>
+          <view class="align-options">
+            <view class="align-btn {{textAlign === 'left' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="left">左对齐</view>
+            <view class="align-btn {{textAlign === 'center' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="center">居中</view>
+            <view class="align-btn {{textAlign === 'right' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="right">右对齐</view>
+          </view>
         </view>
          <view class="setting-item">
           <text>基准线位置 ({{baselinePercent}}%)</text>

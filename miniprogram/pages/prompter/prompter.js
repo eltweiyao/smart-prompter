@@ -66,6 +66,7 @@ Page({
     fontSize: 40,
     lineHeight: 1.6,
     letterSpacing: 0,
+    textAlign: 'center',
     baselinePercent: 50,
     focusEnabled: false,
     countdown: 0,
@@ -74,6 +75,7 @@ Page({
     speed: 5,
     isRunning: false,
     showSettings: false,
+    isLandscape: false,
     
     // Transform Engine State
     offsetY: 0,
@@ -88,10 +90,14 @@ Page({
 
   onLoad: function(options) {
     const sysInfo = wx.getSystemInfoSync();
-    this.setData({ statusBarHeight: sysInfo.statusBarHeight });
+    this.setData({ 
+      statusBarHeight: sysInfo.statusBarHeight,
+      isLandscape: sysInfo.windowWidth > sysInfo.windowHeight
+    });
 
     // Load User Settings
     this.loadSettings();
+    this.updateStatusBarColor(this.data.bgColor);
 
     if (options.content) {
       const content = decodeURIComponent(options.content);
@@ -118,6 +124,7 @@ Page({
         fontSize: settings.fontSize || 40,
         lineHeight: settings.lineHeight || 1.6,
         letterSpacing: settings.letterSpacing || 0,
+        textAlign: settings.textAlign || 'center',
         baselinePercent: settings.baselinePercent || 50,
         focusEnabled: settings.focusEnabled || false,
         speed: settings.speed || 5,
@@ -133,6 +140,7 @@ Page({
       fontSize: this.data.fontSize,
       lineHeight: this.data.lineHeight,
       letterSpacing: this.data.letterSpacing,
+      textAlign: this.data.textAlign,
       baselinePercent: this.data.baselinePercent,
       focusEnabled: this.data.focusEnabled,
       speed: this.data.speed,
@@ -150,7 +158,10 @@ Page({
 
   onResize: function(res) {
     const sysInfo = wx.getSystemInfoSync();
-    this.setData({ statusBarHeight: sysInfo.statusBarHeight });
+    this.setData({ 
+      statusBarHeight: sysInfo.statusBarHeight,
+      isLandscape: sysInfo.windowWidth > sysInfo.windowHeight
+    });
     setTimeout(() => {
       this.measureLayout();
     }, 300);
@@ -209,6 +220,10 @@ Page({
     setTimeout(() => this.measureLayout(), 300);
     this.saveSettings();
   },
+  onTextAlignChange: function(e) {
+    this.setData({ textAlign: e.currentTarget.dataset.align });
+    this.saveSettings();
+  },
   onBaselineChange: function(e) {
     this.setData({ baselinePercent: e.detail.value });
     this.saveSettings();
@@ -237,8 +252,26 @@ Page({
     this.saveSettings();
   },
   setBgColor: function(e) { 
-    this.setData({ bgColor: e.currentTarget.dataset.color }); 
+    const color = e.currentTarget.dataset.color;
+    this.setData({ bgColor: color }); 
+    this.updateStatusBarColor(color);
     this.saveSettings();
+  },
+
+  updateStatusBarColor: function(bgColor) {
+    if (bgColor === '#ffffff') {
+      wx.setNavigationBarColor({
+        frontColor: '#000000',
+        backgroundColor: '#ffffff',
+        animation: { duration: 200, timingFunc: 'easeIn' }
+      });
+    } else {
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: bgColor === '#00b140' ? '#00b140' : '#000000',
+        animation: { duration: 200, timingFunc: 'easeIn' }
+      });
+    }
   },
 
   stopAll: function() {
