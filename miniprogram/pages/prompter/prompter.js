@@ -408,6 +408,7 @@ Page({
     
     manager.onRecognize = (res) => {
         const text = res.result;
+        console.log("🎤 正在识别:", text);
         const delta = text.slice(this.lastRecognizedLength);
         this.lastRecognizedLength = text.length;
         
@@ -420,7 +421,12 @@ Page({
         }
     }
     
+    manager.onStart = (res) => {
+        console.log("✅ 语音识别已启动");
+    }
+    
     manager.onStop = (res) => {
+        console.log("🛑 语音识别停止", res.result);
         // Handle restart if still running
         if (this.data.isRunning) {
             this.lastRecognizedLength = 0;
