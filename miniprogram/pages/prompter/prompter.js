@@ -10,7 +10,7 @@ class AnchorTextMatcher {
     this.scriptLength = this.script.length;
     this.lastIndex = startIndex;
     this.buffer = ''; 
-    this.searchWindow = 300; // Lookahead window
+    this.searchWindow = 150; // Reduced window from 300 to 150 for safety
     console.log('AnchorMatcher initialized. Script len:', this.script.length, 'Start:', startIndex);
   }
 
@@ -38,11 +38,27 @@ class AnchorTextMatcher {
 
       const idx = scriptWindow.indexOf(suffix);
       if (idx !== -1) {
-        const newIndex = this.lastIndex + idx + len;
-        if (newIndex > this.lastIndex) {
-          this.lastIndex = newIndex;
-          return this.lastIndex / this.scriptLength;
+        // Anti-Jump Logic: Enforce distance constraints based on match quality
+        const distance = idx;
+        let maxAllowedDist = 20; // Default strict
+
+        if (len >= 8) maxAllowedDist = 150; // High confidence
+        else if (len >= 5) maxAllowedDist = 80; // Medium
+        else if (len >= 3) maxAllowedDist = 30; // Short
+        else maxAllowedDist = 10; // Very short (2 chars) - must be immediate
+
+        if (isCJK) maxAllowedDist *= 1.5;
+
+        if (distance <= maxAllowedDist) {
+            const newIndex = this.lastIndex + idx + len;
+            if (newIndex > this.lastIndex) {
+              this.lastIndex = newIndex;
+              return this.lastIndex / this.scriptLength;
+            }
+            return null; // Match found but didn't advance (shouldn't happen with strict logic)
         }
+        // If match found but too far, ignore and continue searching shorter/other suffixes
+        // (Though typically indexOf finds closest, so shorter suffix at same spot will also fail)
       }
     }
     return null;
@@ -424,8 +440,10 @@ Page({
     this.setData({ isRunning: true });
 
     let safeProgress = 0;
+    const lineH = this.data.fontSize * this.data.lineHeight;
     if (this.contentHeight > 0) {
-        const currentProgress = Math.abs(this.data.offsetY) / this.contentHeight;
+        // 减去一行高度的偏移量，以获取当前在基准线处的实际文字进度
+        const currentProgress = (Math.abs(this.data.offsetY) - lineH) / this.contentHeight;
         safeProgress = Math.max(0, Math.min(1, currentProgress));
     }
     
@@ -448,7 +466,10 @@ Page({
         if (delta) {
              const progress = this.matcher.match(delta);
              if (progress !== null) {
-                const targetOffset = - (this.contentHeight * progress);
+                // 额外向上偏移一行高度 (lineH)
+                // 原逻辑是将匹配到的词末尾对齐基准线，导致下一行（正在读的词）在基准线下两行左右
+                // 减去 lineH 后，正在读的词会上升到基准线下一行左右的位置
+                const targetOffset = - (this.contentHeight * progress) - lineH;
                 this.targetOffsetY = targetOffset;
              }
         }
