@@ -95,5 +95,18 @@ Page({
     wx.navigateTo({
       url: `/pages/prompter/prompter?content=${contentEncoded}&orientation=${this.data.orientation}`
     });
+  },
+
+  onShareAppMessage: function () {
+    return {
+      title: '智能题词器',
+      path: '/pages/index/index'
+    }
+  },
+
+  onShareTimeline: function () {
+    return {
+      title: '智能题词器'
+    }
   }
 })

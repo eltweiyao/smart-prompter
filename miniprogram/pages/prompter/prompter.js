@@ -555,4 +555,17 @@ Page({
     }
     // isRunning is set in stopAll
   },
+
+  onShareAppMessage: function () {
+    return {
+      title: '智能题词器',
+      path: '/pages/index/index'
+    }
+  },
+
+  onShareTimeline: function () {
+    return {
+      title: '智能题词器'
+    }
+  }
 })
