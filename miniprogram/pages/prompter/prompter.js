@@ -361,16 +361,31 @@ Page({
   onTouchStart: function(e) {
     this.resetUiAutoHide();
 
+    if (this.momentumId) {
+      wx.cancelAnimationFrame(this.momentumId);
+      this.momentumId = null;
+    }
+
     if (this.data.isRunning) {
       this.stopAll(); 
     }
     this.lastTouchY = e.touches[0].clientY;
+    this.lastTouchTs = e.timeStamp;
+    this.lastSpeed = 0;
   },
   
   onTouchMove: function(e) {
     const currentY = e.touches[0].clientY;
+    const currentTs = e.timeStamp;
     const delta = currentY - this.lastTouchY;
+    const timeDelta = currentTs - this.lastTouchTs;
+    
     this.lastTouchY = currentY;
+    this.lastTouchTs = currentTs;
+
+    if (timeDelta > 0) {
+      this.lastSpeed = delta / timeDelta;
+    }
     
     const newOffset = this.data.offsetY + delta;
     
@@ -381,8 +396,24 @@ Page({
   },
   
   onTouchEnd: function() {
-    // When manual scroll finishes, we could also reset the timer
     this.resetUiAutoHide();
+    this.momentumLoop();
+  },
+
+  momentumLoop: function() {
+    if (Math.abs(this.lastSpeed) < 0.01) {
+      this.lastSpeed = 0;
+      return;
+    }
+
+    const newOffset = this.data.offsetY + this.lastSpeed * 16.7; // Assuming 60fps
+    this.lastSpeed *= 0.95; // Decay factor
+
+    this.setData({
+      offsetY: newOffset
+    });
+
+    this.momentumId = wx.requestAnimationFrame(this.momentumLoop.bind(this));
   },
 
   startBasicScroll: function() {
@@ -425,7 +456,7 @@ Page({
     
     this.setData({
       isRunning: true,
-      transitionStyle: `transform ${duration}s linear`,
+      transitionStyle: `transform ${duration}s cubic-bezier(0.25, 1, 0.5, 1)`,
       offsetY: targetOffset
     });
   },
@@ -453,36 +484,6 @@ Page({
         offsetY: currentY
       });
     });
-  },
-
-  targetOffsetY: 0,
-  smartLoopId: null,
-
-  runSmartLoop: function() {
-    if (!this.data.isRunning) return;
-
-    const DEAD_ZONE = 0.1; 
-    const LERP_FACTOR = 0.4; 
-
-    const current = this.data.offsetY;
-    const target = this.targetOffsetY;
-    const diff = target - current;
-
-    if (Math.abs(diff) > DEAD_ZONE) {
-      const nextY = current + diff * LERP_FACTOR;
-      this.setData({
-        offsetY: nextY,
-        transitionStyle: 'none'
-      });
-    }
-
-    this.smartLoopId = this.requestLoop(this.runSmartLoop.bind(this));
-  },
-
-  requestLoop: function(cb) {
-    return (typeof this.animate === 'function' && typeof wx.requestAnimationFrame === 'function') 
-      ? wx.requestAnimationFrame(cb) 
-      : setTimeout(cb, 1000 / 60); 
   },
 
   startSmartFollow: function() {
@@ -540,6 +541,45 @@ Page({
     }
 
     manager.start({ duration: 60000, lang: "zh_CN" });
+  },
+
+  runSmartLoop: function() {
+    const loop = (timestamp) => {
+        if (!this.data.isRunning || this.data.mode !== 'smart') return;
+        
+        const now = timestamp || Date.now();
+        const deltaTime = this.lastFrameTime ? (now - this.lastFrameTime) / 1000 : 0;
+        this.lastFrameTime = now;
+
+        const currentOffset = this.data.offsetY;
+        const targetOffset = this.targetOffsetY;
+        const diff = targetOffset - currentOffset;
+
+        // If close enough, snap to target and stop excessive updates
+        if (Math.abs(diff) < 1) {
+            this.setData({ offsetY: targetOffset });
+        } else {
+            // Apply easing for a smoother approach. 
+            // The factor (e.g., 4) controls the "snappiness" of the follow.
+            const easeFactor = 4;
+            const move = diff * easeFactor * deltaTime;
+            
+            this.setData({ 
+              offsetY: currentOffset + move,
+              // We manage the animation manually, so transition is none
+              transitionStyle: 'none' 
+            });
+        }
+        
+        if (typeof wx.requestAnimationFrame === 'function') {
+            this.smartLoopId = wx.requestAnimationFrame(loop);
+        } else {
+            this.smartLoopId = setTimeout(() => loop(), 33); // Fallback to ~30fps
+        }
+    };
+    
+    this.lastFrameTime = null; // Reset time for the new loop
+    loop();
   },
 
   stopSmartFollow: function() {
