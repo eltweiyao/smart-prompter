@@ -1,7 +1,7 @@
 <view class="container-prompter" style="background-color: {{bgColor}};">
   
   <!-- Header -->
-  <view class="header {{isLandscape ? 'header-landscape' : ''}}" style="padding-top: {{isLandscape ? 5 : statusBarHeight}}px; opacity: {{isRunning ? 0 : 1}}; pointer-events: {{isRunning ? 'none' : 'auto'}};">
+  <view class="header {{isLandscape ? 'header-landscape' : ''}}" style="padding-top: {{isLandscape ? 5 : statusBarHeight}}px; opacity: {{isRunning || uiHidden ? 0 : 1}}; pointer-events: {{isRunning || uiHidden ? 'none' : 'auto'}};">
     <view class="left-group">
       <view class="icon-btn" bindtap="goBack">
         <text class="icon">←</text>
@@ -63,7 +63,7 @@
   </view>
 
   <!-- Bottom Controls -->
-  <view class="controls" wx:if="{{!isRunning && countdown === 0}}">
+  <view class="controls" wx:if="{{!isRunning && countdown === 0 && !uiHidden}}">
     <block wx:if="{{mode === 'basic'}}">
       <view class="btn-play-round" bindtap="startBasicScroll">
         <view class="icon-play"></view>

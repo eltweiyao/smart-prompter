@@ -92,6 +92,7 @@ Page({
     isRunning: false,
     showSettings: false,
     isLandscape: false,
+    uiHidden: false,
     
     // Transform Engine State
     offsetY: 0,
@@ -103,6 +104,7 @@ Page({
   viewportHeight: 0, 
   matcher: null,
   lastTouchY: 0, 
+  uiHideTimer: null,
 
   onLoad: function(options) {
     const sysInfo = wx.getSystemInfoSync();
@@ -169,6 +171,7 @@ Page({
 
   onUnload: function() {
     this.stopAll();
+    this.cancelUiAutoHide();
     wx.setPageOrientation({ orientation: 'portrait' });
   },
 
@@ -193,6 +196,7 @@ Page({
 
   onReady: function() {
     this.measureLayout();
+    this.resetUiAutoHide();
   },
 
   measureLayout: function() {
@@ -216,13 +220,20 @@ Page({
 
   toggleSettings: function() {
     this.setData({ showSettings: !this.data.showSettings });
+    this.resetUiAutoHide(); // Interaction resets timer
   },
 
   switchMode: function(e) {
     const mode = e.currentTarget.dataset.mode;
     if (this.data.mode !== mode) {
       this.stopAll();
-      this.setData({ mode: mode });
+      this.setData({ mode: mode }, () => {
+        if (mode === 'basic') {
+          this.resetUiAutoHide();
+        } else {
+          this.cancelUiAutoHide();
+        }
+      });
     }
   },
 
@@ -243,7 +254,6 @@ Page({
   onBaselineChange: function(e) {
     this.setData({ baselinePercent: e.detail.value });
     this.saveSettings();
-    // No need to remeasure layout, but might need to adjust current offset if not running
   },
   onFocusToggle: function(e) {
     this.setData({ focusEnabled: e.detail.value });
@@ -290,6 +300,36 @@ Page({
     }
   },
 
+  // --- UI Auto Hide Logic ---
+  resetUiAutoHide: function() {
+    if (this.uiHideTimer) {
+      clearTimeout(this.uiHideTimer);
+      this.uiHideTimer = null;
+    }
+    
+    if (this.data.uiHidden) {
+      this.setData({ uiHidden: false });
+    }
+    
+    if (this.data.mode === 'basic' && !this.data.isRunning) {
+      this.uiHideTimer = setTimeout(() => {
+        if (this.data.mode === 'basic' && !this.data.isRunning) {
+           this.setData({ uiHidden: true });
+        }
+      }, 5000);
+    }
+  },
+
+  cancelUiAutoHide: function() {
+    if (this.uiHideTimer) {
+      clearTimeout(this.uiHideTimer);
+      this.uiHideTimer = null;
+    }
+    if (this.data.uiHidden) {
+      this.setData({ uiHidden: false });
+    }
+  },
+
   stopAll: function() {
     if (this.countdownTimer) {
       clearInterval(this.countdownTimer);
@@ -301,10 +341,14 @@ Page({
     } else {
       this.stopSmartFollow();
     }
-    this.setData({ isRunning: false });
+    this.setData({ isRunning: false }, () => {
+      this.resetUiAutoHide(); 
+    });
   },
 
   onScreenTap: function() {
+    this.resetUiAutoHide();
+
     if (this.data.showSettings) {
       this.setData({ showSettings: false });
       return;
@@ -315,6 +359,8 @@ Page({
   },
 
   onTouchStart: function(e) {
+    this.resetUiAutoHide();
+
     if (this.data.isRunning) {
       this.stopAll(); 
     }
@@ -335,9 +381,12 @@ Page({
   },
   
   onTouchEnd: function() {
+    // When manual scroll finishes, we could also reset the timer
+    this.resetUiAutoHide();
   },
 
   startBasicScroll: function() {
+    this.cancelUiAutoHide();
     this.measureLayout();
     if (!this.contentHeight) {
       setTimeout(() => this.startBasicScroll(), 100);
@@ -387,6 +436,7 @@ Page({
     query.select('.prompter-viewport').boundingClientRect();
     
     query.exec((res) => {
+      if (!res[0]) return; // Guard against element not found
       const matrix = res[0].transform;
       let currentY = this.data.offsetY; 
       
@@ -436,6 +486,7 @@ Page({
   },
 
   startSmartFollow: function() {
+    this.cancelUiAutoHide();
     this.measureLayout();
     this.setData({ isRunning: true });
 
@@ -466,9 +517,6 @@ Page({
         if (delta) {
              const progress = this.matcher.match(delta);
              if (progress !== null) {
-                // 额外向上偏移一行高度 (lineH)
-                // 原逻辑是将匹配到的词末尾对齐基准线，导致下一行（正在读的词）在基准线下两行左右
-                // 减去 lineH 后，正在读的词会上升到基准线下一行左右的位置
                 const targetOffset = - (this.contentHeight * progress) - lineH;
                 this.targetOffsetY = targetOffset;
              }
@@ -481,7 +529,6 @@ Page({
     
     manager.onStop = (res) => {
         console.log("🛑 语音识别停止", res.result);
-        // Handle restart if still running
         if (this.data.isRunning) {
             this.lastRecognizedLength = 0;
             manager.start({ duration: 60000, lang: "zh_CN" });
@@ -497,7 +544,6 @@ Page({
 
   stopSmartFollow: function() {
     manager.stop();
-    this.setData({ isRunning: false });
     
     if (this.smartLoopId) {
         if (typeof wx.cancelAnimationFrame === 'function') {
@@ -507,5 +553,6 @@ Page({
         }
         this.smartLoopId = null;
     }
+    // isRunning is set in stopAll
   },
 })
