@@ -270,3 +270,56 @@
   0% { transform: scale(0.5); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* Landscape-specific adjustments */
+.header-landscape {
+  padding-left: 50rpx !important;
+  padding-right: 50rpx !important;
+}
+
+.settings-panel-landscape {
+  width: 60vw;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-left-radius: 20rpx;
+  border-top-right-radius: 20rpx;
+  max-height: 85vh;
+  padding: 10px; /* Reduced from 40rpx (20px) */
+}
+
+.settings-panel-landscape .setting-group {
+  margin-bottom: 10px; /* Reduced from 20rpx (10px) */
+}
+.settings-panel-landscape .setting-title {
+  font-size: 16px;
+  margin-bottom: 8px; /* Reduced from 15rpx (7.5px) */
+}
+.settings-panel-landscape .setting-item { /* Added for compactness */
+  margin-bottom: 8px; /* Original was 20rpx (10px) */
+}
+.settings-panel-landscape .setting-item text {
+  font-size: 13px;
+}
+.settings-panel-landscape .align-btn {
+  font-size: 13px;
+}
+.settings-panel-landscape .align-options { /* Added for compactness */
+  margin-top: 5px; /* Original was 10rpx (5px) */
+}
+.settings-panel-landscape .color-row { /* Added for compactness */
+  margin-bottom: 8px; /* Original was 20rpx (10px) */
+}
+.settings-panel-landscape .color-row text {
+  font-size: 14px;
+}
+.settings-panel-landscape .color-circle {
+  width: 30px;
+  height: 30px;
+}
+
+.focus-line-container-landscape .focus-arrow {
+  font-size: 20px;
+}
+.focus-line-container-landscape .focus-line {
+  height: 2px;
+}

@@ -20,7 +20,7 @@
   </view>
 
   <!-- Focus Line Indicator -->
-  <view class="focus-line-container" style="top: {{baselinePercent}}%;">
+  <view class="focus-line-container {{isLandscape ? 'focus-line-container-landscape' : ''}}" style="top: {{baselinePercent}}%;">
     <view class="focus-arrow">▶</view>
     <view class="focus-line"></view>
   </view>
@@ -78,7 +78,7 @@
   </view>
 
   <!-- Settings Panel -->
-  <view class="settings-panel" wx:if="{{showSettings}}">
+  <view class="settings-panel {{isLandscape ? 'settings-panel-landscape' : ''}}" wx:if="{{showSettings}}">
     <scroll-view scroll-y="true" style="max-height: 60vh;">
       <view class="setting-group">
         <view class="setting-title">显示设置</view>

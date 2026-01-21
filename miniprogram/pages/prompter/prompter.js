@@ -362,7 +362,11 @@ Page({
     this.resetUiAutoHide();
 
     if (this.momentumId) {
-      wx.cancelAnimationFrame(this.momentumId);
+      if (typeof wx.cancelAnimationFrame === 'function') {
+        wx.cancelAnimationFrame(this.momentumId);
+      } else {
+        clearTimeout(this.momentumId);
+      }
       this.momentumId = null;
     }
 
@@ -413,7 +417,11 @@ Page({
       offsetY: newOffset
     });
 
-    this.momentumId = wx.requestAnimationFrame(this.momentumLoop.bind(this));
+    if (typeof wx.requestAnimationFrame === 'function') {
+      this.momentumId = wx.requestAnimationFrame(this.momentumLoop.bind(this));
+    } else {
+      this.momentumId = setTimeout(this.momentumLoop.bind(this), 16);
+    }
   },
 
   startBasicScroll: function() {
