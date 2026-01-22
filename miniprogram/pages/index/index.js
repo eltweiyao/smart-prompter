@@ -4,6 +4,7 @@ Page({
   data: {
     content: '',
     orientation: 'auto', // 'auto', 'portrait', 'landscape'
+    isRecording: false,
     recentScripts: [],
     inputHeight: 400 // Initial height in rpx
   },
@@ -30,6 +31,10 @@ Page({
 
   setOrientation: function(e) {
     this.setData({ orientation: e.currentTarget.dataset.type });
+  },
+
+  toggleRecording: function() {
+    this.setData({ isRecording: !this.data.isRecording });
   },
 
   loadHistory: function() {
@@ -93,7 +98,7 @@ Page({
     // We encode component to handle special chars/newlines
     const contentEncoded = encodeURIComponent(this.data.content);
     wx.navigateTo({
-      url: `/pages/prompter/prompter?content=${contentEncoded}&orientation=${this.data.orientation}`
+      url: `/pages/prompter/prompter?content=${contentEncoded}&orientation=${this.data.orientation}&isRecording=${this.data.isRecording}`
     });
   },
 

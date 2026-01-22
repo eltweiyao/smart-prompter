@@ -1,4 +1,14 @@
-<view class="container-prompter" style="background-color: {{bgColor}};">
+<view class="page-wrapper">
+  <!-- Camera View (Background) -->
+  <camera 
+    wx:if="{{isRecording}}" 
+    class="camera-view" 
+    device-position="{{devicePosition}}" 
+    flash="off"
+    resolution="high"
+  ></camera>
+
+  <view class="container-prompter" style="background-color: {{isRecording ? 'transparent' : bgColor}};">
   
   <!-- Header -->
   <view class="header {{isLandscape ? 'header-landscape' : ''}}" style="padding-top: {{isLandscape ? 5 : statusBarHeight}}px; opacity: {{isRunning || uiHidden ? 0 : 1}}; pointer-events: {{isRunning || uiHidden ? 'none' : 'auto'}};">
@@ -147,4 +157,16 @@
 
     <button class="btn-close-settings" bindtap="toggleSettings">关闭</button>
   </view>
+</view>
+
+<!-- Recording Controls -->
+<view class="record-controls {{isLandscape ? 'record-controls-landscape' : ''}}" wx:if="{{isRecording}}">
+  <view class="rc-placeholder"></view>
+  <view class="rc-record-wrapper" bindtap="toggleRecord">
+    <view class="rc-record-btn {{recordStatus}}"></view>
+  </view>
+  <view class="rc-switch-camera" bindtap="switchCamera">
+    <text class="rc-switch-icon">🔄</text>
+  </view>
+</view>
 </view>

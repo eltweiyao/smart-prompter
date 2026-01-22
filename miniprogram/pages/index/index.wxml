@@ -36,6 +36,11 @@
       </view>
     </view>
 
+    <view class="setting-item" bindtap="toggleRecording">
+      <text>录制视频</text>
+      <switch color="#1aac19" checked="{{isRecording}}" />
+    </view>
+
     <button class="btn-start" bindtap="startPrompter">开始提词</button>
   </view>
 

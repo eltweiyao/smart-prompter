@@ -96,7 +96,12 @@ Page({
     
     // Transform Engine State
     offsetY: 0,
-    transitionStyle: '' // e.g. "transform 5s linear"
+    transitionStyle: '', // e.g. "transform 5s linear"
+    
+    // Recording State
+    isRecording: false,
+    devicePosition: 'front',
+    recordStatus: 'ready', // 'ready', 'recording', 'paused'
   },
   
   // Internal State
@@ -105,6 +110,7 @@ Page({
   matcher: null,
   lastTouchY: 0, 
   uiHideTimer: null,
+  cameraContext: null,
 
   onLoad: function(options) {
     const sysInfo = wx.getSystemInfoSync();
@@ -133,6 +139,41 @@ Page({
         }
       }, 100);
     }
+
+    if (options.isRecording === 'true') {
+      this.setData({ isRecording: true, bgColor: 'transparent' });
+      this.initCamera();
+    }
+  },
+
+  initCamera: function() {
+    wx.getSetting({
+      success: res => {
+        if (!res.authSetting['scope.camera'] || !res.authSetting['scope.record']) {
+          wx.authorize({
+            scope: 'scope.camera',
+            success: () => {
+              wx.authorize({
+                scope: 'scope.record',
+                success: () => {
+                  this.cameraContext = wx.createCameraContext();
+                },
+                fail: () => {
+                  wx.showToast({ title: '录像功能需要授权', icon: 'none' });
+                  this.setData({ isRecording: false, bgColor: '#000000' });
+                }
+              })
+            },
+            fail: () => {
+              wx.showToast({ title: '相机功能需要授权', icon: 'none' });
+              this.setData({ isRecording: false, bgColor: '#000000' });
+            }
+          })
+        } else {
+          this.cameraContext = wx.createCameraContext();
+        }
+      }
+    })
   },
 
   loadSettings: function() {
@@ -171,6 +212,9 @@ Page({
 
   onUnload: function() {
     this.stopAll();
+    if (this.data.isRecording) {
+      this.stopRecordAndSave();
+    }
     this.cancelUiAutoHide();
     wx.setPageOrientation({ orientation: 'portrait' });
   },
@@ -215,7 +259,13 @@ Page({
   },
 
   goBack: function() {
-    wx.navigateBack();
+    if (this.data.isRecording && this.data.recordStatus !== 'ready') {
+      this.stopRecordAndSave(() => {
+        wx.navigateBack();
+      });
+    } else {
+      wx.navigateBack();
+    }
   },
 
   toggleSettings: function() {
@@ -298,6 +348,73 @@ Page({
         animation: { duration: 200, timingFunc: 'easeIn' }
       });
     }
+  },
+
+  // --- Recording Controls ---
+  switchCamera: function() {
+    if (!this.data.isRecording) return;
+    const newPosition = this.data.devicePosition === 'front' ? 'back' : 'front';
+    this.setData({ devicePosition: newPosition });
+  },
+
+  toggleRecord: function() {
+    if (!this.data.isRecording) return;
+    switch(this.data.recordStatus) {
+      case 'ready':
+        this.startRecord();
+        break;
+      case 'recording':
+        // API does not support pause/resume, so we stop.
+        this.stopRecordAndSave();
+        break;
+    }
+  },
+
+  startRecord: function() {
+    this.cameraContext.startRecord({
+      success: () => {
+        this.setData({ recordStatus: 'recording' });
+        wx.showToast({ title: '开始录制', icon: 'none' });
+      },
+      fail: () => {
+        wx.showToast({ title: '录制失败', icon: 'error' });
+      }
+    });
+  },
+
+  stopRecordAndSave: function(callback) {
+    if (!this.cameraContext) {
+      if(callback) callback();
+      return;
+    }
+    this.cameraContext.stopRecord({
+      success: (res) => {
+        this.setData({ recordStatus: 'ready' });
+        const { tempVideoPath } = res;
+        wx.showLoading({ title: '正在保存...' });
+        wx.saveVideoToPhotosAlbum({
+          filePath: tempVideoPath,
+          success: () => {
+            wx.hideLoading();
+            wx.showToast({ title: '已保存到相册', icon: 'success' });
+            if(callback) callback();
+          },
+          fail: (err) => {
+            wx.hideLoading();
+            if (err.errMsg.includes('auth')) {
+               wx.showToast({ title: '请授权保存到相册', icon: 'none' });
+            } else {
+               wx.showToast({ title: '保存失败', icon: 'error' });
+            }
+             if(callback) callback();
+          }
+        })
+      },
+      fail: () => {
+        wx.showToast({ title: '结束录制失败', icon: 'error' });
+        if(callback) callback();
+      }
+    });
   },
 
   // --- UI Auto Hide Logic ---

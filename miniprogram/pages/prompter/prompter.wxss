@@ -323,3 +323,131 @@
 .focus-line-container-landscape .focus-line {
   height: 2px;
 }
+
+
+/* --- New Styles for Recording --- */
+.page-wrapper {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.camera-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* Behind prompter content */
+}
+
+.container-prompter {
+  z-index: 2; /* In front of camera */
+}
+
+
+.record-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 50rpx 100rpx;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 30; /* Above text, below settings */
+}
+.record-controls-landscape {
+  left: auto;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 160rpx;
+  flex-direction: column-reverse;
+  justify-content: center;
+  align-items: center;
+  padding: 50rpx 0;
+  gap: 120rpx;
+}
+
+.rc-placeholder {
+  width: 80rpx;
+  height: 80rpx;
+}
+.record-controls-landscape .rc-placeholder {
+  display: none;
+}
+
+.rc-record-wrapper {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.rc-record-wrapper:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.5);
+}
+.record-controls-landscape .rc-record-wrapper {
+  transform: rotate(90deg);
+}
+
+
+.rc-record-btn {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background-color: #ff3b30;
+  border: 6rpx solid white;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.rc-record-btn.recording {
+  background-color: transparent;
+}
+/* Inner square/pause bars for state change */
+.rc-record-btn.recording::before {
+  content: '';
+  display: block;
+  width: 50rpx;
+  height: 50rpx;
+  background-color: #ff3b30;
+  border-radius: 10rpx;
+  margin: 30rpx auto;
+  transition: all 0.3s;
+}
+.rc-record-btn.paused::before {
+  width: 40rpx;
+  height: 50rpx;
+  border-radius: 0;
+  border-left: 15rpx solid #ff3b30;
+  border-right: 15rpx solid #ff3b30;
+  background: transparent;
+  margin: 30rpx auto;
+}
+
+
+.rc-switch-camera {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: rgba(100, 100, 100, 0.4);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.record-controls-landscape .rc-switch-camera {
+  transform: rotate(90deg);
+}
+
+.rc-switch-icon {
+  font-size: 40rpx;
+  filter: grayscale(1);
+}
+
