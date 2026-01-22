@@ -23,25 +23,28 @@
 
   <!-- Controls Section -->
   <view class="controls-section">
-    <view class="section-title">屏幕方向</view>
-    <view class="orientation-selector">
-      <view class="option {{orientation === 'auto' ? 'active' : ''}}" bindtap="setOrientation" data-type="auto">
-        <text>🔄 自动</text>
+    <view class="options-group">
+      <view class="orientation-selector">
+        <view class="option {{orientation === 'auto' ? 'active' : ''}}" bindtap="setOrientation" data-type="auto">
+          <text>🔄 自动</text>
+        </view>
+        <view class="option {{orientation === 'portrait' ? 'active' : ''}}" bindtap="setOrientation" data-type="portrait">
+          <text>📱 竖屏</text>
+        </view>
+        <view class="option {{orientation === 'landscape' ? 'active' : ''}}" bindtap="setOrientation" data-type="landscape">
+          <text>🖥️ 横屏</text>
+        </view>
       </view>
-      <view class="option {{orientation === 'portrait' ? 'active' : ''}}" bindtap="setOrientation" data-type="portrait">
-        <text>📱 竖屏</text>
-      </view>
-      <view class="option {{orientation === 'landscape' ? 'active' : ''}}" bindtap="setOrientation" data-type="landscape">
-        <text>🖥️ 横屏</text>
+      <view class="setting-item" bindtap="toggleRecording">
+        <text>录制</text>
+        <switch color="#1aac19" checked="{{isRecording}}" />
       </view>
     </view>
 
-    <view class="setting-item" bindtap="toggleRecording">
-      <text>录制视频</text>
-      <switch color="#1aac19" checked="{{isRecording}}" />
+    <view class="main-actions">
+      <button class="btn-save" bindtap="saveScript">保存</button>
+      <button class="btn-start" bindtap="startPrompter">开始提词</button>
     </view>
-
-    <button class="btn-start" bindtap="startPrompter">开始提词</button>
   </view>
 
   <!-- Recent History -->

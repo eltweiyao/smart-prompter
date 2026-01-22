@@ -166,7 +166,7 @@
     <view class="rc-record-btn {{recordStatus}}"></view>
   </view>
   <view class="rc-switch-camera" bindtap="switchCamera">
-    <text class="rc-switch-icon">🔄</text>
+    <image class="rc-switch-icon-img" src="../../images/camera-switch.svg" />
   </view>
 </view>
 </view>

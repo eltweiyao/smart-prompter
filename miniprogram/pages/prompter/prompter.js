@@ -144,6 +144,7 @@ Page({
       this.setData({ isRecording: true, bgColor: 'transparent' });
       this.initCamera();
     }
+    wx.setKeepScreenOn({ keepScreenOn: true });
   },
 
   initCamera: function() {
@@ -217,6 +218,7 @@ Page({
     }
     this.cancelUiAutoHide();
     wx.setPageOrientation({ orientation: 'portrait' });
+    wx.setKeepScreenOn({ keepScreenOn: false });
   },
 
   onResize: function(res) {
@@ -466,6 +468,10 @@ Page({
   onScreenTap: function() {
     this.resetUiAutoHide();
 
+    if (this.isScrolling) {
+      return; // It's a scroll, not a tap
+    }
+
     if (this.data.showSettings) {
       this.setData({ showSettings: false });
       return;
@@ -488,14 +494,19 @@ Page({
     }
 
     if (this.data.isRunning) {
-      this.stopAll(); 
+      if (this.data.mode === 'smart') {
+        this.stopSmartLoop();
+        this.setData({ isRunning: false }); // Manual scroll stops AI follow
+      }
     }
     this.lastTouchY = e.touches[0].clientY;
     this.lastTouchTs = e.timeStamp;
     this.lastSpeed = 0;
+    this.isScrolling = false; // Reset scrolling flag
   },
   
   onTouchMove: function(e) {
+    this.isScrolling = true; // User is scrolling
     const currentY = e.touches[0].clientY;
     const currentTs = e.timeStamp;
     const delta = currentY - this.lastTouchY;
@@ -707,17 +718,20 @@ Page({
     loop();
   },
 
+  stopSmartLoop: function() {
+    if (this.smartLoopId) {
+      if (typeof wx.cancelAnimationFrame === 'function') {
+          wx.cancelAnimationFrame(this.smartLoopId);
+      } else {
+          clearTimeout(this.smartLoopId);
+      }
+      this.smartLoopId = null;
+    }
+  },
+
   stopSmartFollow: function() {
     manager.stop();
-    
-    if (this.smartLoopId) {
-        if (typeof wx.cancelAnimationFrame === 'function') {
-            wx.cancelAnimationFrame(this.smartLoopId);
-        } else {
-            clearTimeout(this.smartLoopId);
-        }
-        this.smartLoopId = null;
-    }
+    this.stopSmartLoop();
     // isRunning is set in stopAll
   },
 

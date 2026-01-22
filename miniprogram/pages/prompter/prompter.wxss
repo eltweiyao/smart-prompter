@@ -117,7 +117,7 @@
 
 .ai-feedback-fixed {
   position: absolute;
-  bottom: 80rpx;
+  bottom: 30rpx; /* Moved down */
   left: 50%;
   transform: translateX(-50%);
   z-index: 45;
@@ -349,7 +349,7 @@
 
 .record-controls {
   position: absolute;
-  bottom: 0;
+  bottom: 110rpx; /* Moved down slightly */
   left: 0;
   width: 100%;
   padding: 50rpx 100rpx;
@@ -433,8 +433,8 @@
 
 
 .rc-switch-camera {
-  width: 80rpx;
-  height: 80rpx;
+  width: 100rpx; /* Increased size */
+  height: 100rpx; /* Increased size */
   border-radius: 50%;
   background: rgba(100, 100, 100, 0.4);
   backdrop-filter: blur(5px);
@@ -446,8 +446,8 @@
   transform: rotate(90deg);
 }
 
-.rc-switch-icon {
-  font-size: 40rpx;
-  filter: grayscale(1);
+.rc-switch-icon-img {
+  width: 50rpx; /* Increased size */
+  height: 50rpx; /* Increased size */
 }
 

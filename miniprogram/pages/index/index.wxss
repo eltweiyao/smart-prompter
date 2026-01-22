@@ -82,59 +82,81 @@
   box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.03);
 }
 
-.section-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
+.options-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20rpx;
 }
 
 .orientation-selector {
+  flex: 1;
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 30rpx;
-  background: #f0f2f5;
-  border-radius: 16rpx;
-  padding: 8rpx;
+  background: #e5e5ea; /* Lighter background */
+  border-radius: 10rpx; /* Slightly larger border-radius */
+  padding: 4rpx; /* Reduced padding */
+  margin-right: 20rpx; /* Keep margin for spacing with recording switch */
 }
 
 .setting-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 30rpx;
-  font-size: 30rpx;
+  font-size: 26rpx;
   color: #333;
+}
+
+.setting-item text {
+  margin-right: 10rpx;
 }
 
 .option {
   flex: 1;
   text-align: center;
-  padding: 20rpx 0;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  color: #666;
+  padding: 8rpx 0; /* Adjusted padding */
+  border-radius: 6rpx; /* Adjusted border-radius */
+  font-size: 26rpx; /* Adjusted font size */
+  color: #555; /* Slightly darker default color */
   transition: all 0.2s;
 }
 
 .option.active {
   background: #fff;
   color: #007aff;
+  font-weight: 600; /* Bolder font-weight */
+  box-shadow: 0 1rpx 8rpx rgba(0,0,0,0.1); /* More prominent shadow */
+}
+
+.main-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.btn-save,
+.btn-start {
+  flex: 1;
+  border-radius: 40rpx;
+  font-size: 30rpx;
   font-weight: bold;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+  padding: 18rpx 0;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.08);
+}
+
+.btn-save {
+  flex: 0.5;
+  background: #e5e5ea;
+  color: #000;
 }
 
 .btn-start {
+  flex: 1;
   background: #007aff;
   color: #fff;
-  border-radius: 50rpx;
-  font-size: 34rpx;
-  font-weight: bold;
-  padding: 24rpx 0;
-  box-shadow: 0 8rpx 20rpx rgba(0,122,255,0.3);
 }
+
+.btn-save:active,
 .btn-start:active {
   transform: scale(0.98);
+  box-shadow: none;
 }
 
 /* History Section */

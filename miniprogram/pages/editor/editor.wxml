@@ -1,6 +1,8 @@
 <view class="container-editor">
-  <input class="input-title" placeholder="请输入标题" value="{{title}}" bindinput="onTitleInput" />
-  <textarea class="input-content" placeholder="请输入提词内容..." value="{{content}}" bindinput="onContentInput" maxlength="-1"></textarea>
+  <view class="page-body">
+    <input class="input-title" placeholder="请输入标题" value="{{title}}" bindinput="onTitleInput" />
+    <textarea class="input-content" placeholder="请输入提词内容..." value="{{content}}" bindinput="onContentInput" maxlength="-1"></textarea>
+  </view>
   
   <view class="btn-group">
     <button class="btn-save" bindtap="saveScript">保存</button>

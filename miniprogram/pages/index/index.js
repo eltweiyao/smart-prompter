@@ -102,6 +102,15 @@ Page({
     });
   },
 
+  saveScript: function() {
+    if (!this.data.content.trim()) {
+      wx.showToast({ title: '请输入台本内容', icon: 'none' });
+      return;
+    }
+    this.addToHistory(this.data.content);
+    wx.showToast({ title: '已保存', icon: 'success' });
+  },
+
   onShareAppMessage: function () {
     return {
       title: '智能题词器',
