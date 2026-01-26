@@ -10,7 +10,7 @@ class AnchorTextMatcher {
     this.scriptLength = this.script.length;
     this.lastIndex = startIndex;
     this.buffer = ''; 
-    this.searchWindow = 150; // Reduced window from 300 to 150 for safety
+    this.searchWindow = 80; // Reduced window from 150 to 80 for safety
     console.log('AnchorMatcher initialized. Script len:', this.script.length, 'Start:', startIndex);
   }
 
@@ -88,7 +88,7 @@ Page({
     countdown: 0,
     countdownDuration: 0,
     mode: 'basic', 
-    speed: 5,
+    wordsPerMinute: 180,
     isRunning: false,
     showSettings: false,
     isLandscape: false,
@@ -102,6 +102,8 @@ Page({
     isRecording: false,
     devicePosition: 'front',
     recordStatus: 'ready', // 'ready', 'recording', 'paused'
+    activeSettingsTab: 'display',
+    cameraStyle: '',
   },
   
   // Internal State
@@ -112,12 +114,40 @@ Page({
   uiHideTimer: null,
   cameraContext: null,
 
+  switchSettingsTab: function(e) {
+    this.setData({
+      activeSettingsTab: e.currentTarget.dataset.tab
+    });
+  },
+
+  updateCameraView: function() {
+    const sysInfo = wx.getSystemInfoSync();
+    let cameraStyle = '';
+    
+    if (sysInfo.windowWidth > sysInfo.windowHeight) { // Landscape
+        const targetAspectRatio = sysInfo.screenWidth / sysInfo.screenHeight; 
+        
+        const landscapeHeight = sysInfo.windowHeight;
+        const newWidth = landscapeHeight * targetAspectRatio;
+        const widthOffset = (sysInfo.windowWidth - newWidth) / 2;
+
+        cameraStyle = `width: ${newWidth}px; height: ${landscapeHeight}px; left: ${widthOffset}px; top: 0;`;
+
+    } else { // Portrait
+        cameraStyle = 'width: 100%; height: 100%; top: 0; left: 0;';
+    }
+    this.setData({ cameraStyle: cameraStyle });
+  },
+
   onLoad: function(options) {
     const sysInfo = wx.getSystemInfoSync();
     this.setData({ 
       statusBarHeight: sysInfo.statusBarHeight,
-      isLandscape: sysInfo.windowWidth > sysInfo.windowHeight
+      isLandscape: sysInfo.windowWidth > sysInfo.windowHeight,
+      showSettings: false // Explicitly ensure settings are closed on load
     });
+
+    this.updateCameraView();
 
     // Load User Settings
     this.loadSettings();
@@ -157,7 +187,7 @@ Page({
               wx.authorize({
                 scope: 'scope.record',
                 success: () => {
-                  this.cameraContext = wx.createCameraContext();
+                  // Context creation will be handled by onCameraReady
                 },
                 fail: () => {
                   wx.showToast({ title: '录像功能需要授权', icon: 'none' });
@@ -170,11 +200,16 @@ Page({
               this.setData({ isRecording: false, bgColor: '#000000' });
             }
           })
-        } else {
-          this.cameraContext = wx.createCameraContext();
         }
+        // Permissions are already granted, do nothing here.
+        // Context creation will be handled by onCameraReady
       }
     })
+  },
+
+  onCameraReady: function() {
+    console.log("Camera is ready.");
+    this.cameraContext = wx.createCameraContext();
   },
 
   loadSettings: function() {
@@ -187,7 +222,7 @@ Page({
         textAlign: settings.textAlign || 'center',
         baselinePercent: settings.baselinePercent || 50,
         focusEnabled: settings.focusEnabled || false,
-        speed: settings.speed || 5,
+        wordsPerMinute: settings.wordsPerMinute || 180,
         countdownDuration: settings.countdownDuration !== undefined ? settings.countdownDuration : 0,
         fontColor: settings.fontColor || '#ffffff',
         bgColor: settings.bgColor || '#000000'
@@ -203,7 +238,7 @@ Page({
       textAlign: this.data.textAlign,
       baselinePercent: this.data.baselinePercent,
       focusEnabled: this.data.focusEnabled,
-      speed: this.data.speed,
+      wordsPerMinute: this.data.wordsPerMinute,
       countdownDuration: this.data.countdownDuration,
       fontColor: this.data.fontColor,
       bgColor: this.data.bgColor
@@ -223,10 +258,14 @@ Page({
 
   onResize: function(res) {
     const sysInfo = wx.getSystemInfoSync();
+    const newIsLandscape = sysInfo.windowWidth > sysInfo.windowHeight;
+
     this.setData({ 
       statusBarHeight: sysInfo.statusBarHeight,
-      isLandscape: sysInfo.windowWidth > sysInfo.windowHeight
+      isLandscape: newIsLandscape
     });
+
+    this.updateCameraView();
     setTimeout(() => {
       this.measureLayout();
     }, 300);
@@ -271,6 +310,7 @@ Page({
   },
 
   toggleSettings: function() {
+    console.log('toggleSettings called, current showSettings:', this.data.showSettings, 'isLandscape:', this.data.isLandscape);
     this.setData({ showSettings: !this.data.showSettings });
     this.resetUiAutoHide(); // Interaction resets timer
   },
@@ -317,8 +357,8 @@ Page({
     setTimeout(() => this.measureLayout(), 300);
     this.saveSettings();
   },
-  onSpeedChange: function(e) { 
-    this.setData({ speed: e.detail.value }); 
+  onWpmChange: function(e) { 
+    this.setData({ wordsPerMinute: e.detail.value }); 
     this.saveSettings();
   },
   onCountdownDurationChange: function(e) { 
@@ -494,10 +534,7 @@ Page({
     }
 
     if (this.data.isRunning) {
-      if (this.data.mode === 'smart') {
-        this.stopSmartLoop();
-        this.setData({ isRunning: false }); // Manual scroll stops AI follow
-      }
+      this.stopAll();
     }
     this.lastTouchY = e.touches[0].clientY;
     this.lastTouchTs = e.timeStamp;
@@ -585,14 +622,23 @@ Page({
     const targetOffset = -this.contentHeight;
     const distance = Math.abs(targetOffset - currentOffset);
     
-    if (distance <= 0) return; 
+    if (distance <= 0) return;
+
+    // Calculate duration based on WPM
+    // Chinese characters are counted as words.
+    const wordCount = (this.data.content.match(/[\u4e00-\u9fa5]|\b\w+\b/g) || []).length;
+    if (wordCount === 0) return;
+
+    const minutes = wordCount / this.data.wordsPerMinute;
+    const totalDurationInSeconds = minutes * 60;
     
-    const pps = this.data.speed * 8 + 10; 
-    const duration = distance / pps;
-    
+    // The duration should be proportional to the remaining distance
+    const fullDistance = this.contentHeight + this.viewportHeight; // total scrollable distance
+    const duration = totalDurationInSeconds * (distance / fullDistance);
+
     this.setData({
       isRunning: true,
-      transitionStyle: `transform ${duration}s cubic-bezier(0.25, 1, 0.5, 1)`,
+      transitionStyle: `transform ${duration}s linear`,
       offsetY: targetOffset
     });
   },

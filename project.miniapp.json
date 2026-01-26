@@ -1,0 +1,105 @@
+{
+  "miniVersion": "v2",
+  "name": "%name%",
+  "version": "0.0.1",
+  "versionCode": 100,
+  "i18nFilePath": "i18n",
+  "mini-ohos": {
+    "sdkVersion": "0.5.9"
+  },
+  "mini-android": {
+    "resourcePath": "miniapp/android/nativeResources",
+    "sdkVersion": "1.6.24",
+    "toolkitVersion": "0.11.0",
+    "useExtendedSdk": {
+      "media": false,
+      "bluetooth": false,
+      "network": true,
+      "scanner": false,
+      "xweb": false,
+      "xwebEmbed": false,
+      "gdt": false,
+      "open": true
+    },
+    "icons": {
+      "hdpi": "",
+      "xhdpi": "",
+      "xxhdpi": "",
+      "xxxhdpi": ""
+    },
+    "splashscreen": {
+      "hdpi": "",
+      "xhdpi": "",
+      "xxhdpi": ""
+    },
+    "enableVConsole": "open",
+    "privacy": {
+      "enable": true
+    },
+    "usePluginSdk": {
+      "map": ""
+    }
+  },
+  "mini-ios": {
+    "sdkVersion": "1.6.28",
+    "toolkitVersion": "0.0.9",
+    "useExtendedSdk": {
+      "WeAppOpenFuns": false,
+      "WeAppNetwork": true,
+      "WeAppBluetooth": false,
+      "WeAppMedia": false,
+      "WeAppLBS": false,
+      "WeAppOthers": false,
+      "WeAppOpenFuns_HasPay": false,
+      "WeAppAudio": true,
+      "WeAppCamera": true,
+      "WeAppImage": true,
+      "WeAppVideo": true
+    },
+    "enableVConsole": "open",
+    "icons": {
+      "mainIcon120": "miniprogram/images/logo-120x120.svg",
+      "mainIcon180": "miniprogram/images/logo-180x180.svg",
+      "spotlightIcon80": "miniprogram/images/logo-80x80.svg",
+      "spotlightIcon120": "miniprogram/images/logo-120x120.svg",
+      "settingsIcon58": "miniprogram/images/logo-58x58.svg",
+      "settingsIcon87": "miniprogram/images/logo-87x87.svg",
+      "notificationIcon40": "miniprogram/images/logo-40x40.svg",
+      "notificationIcon60": "miniprogram/images/logo-60x60.svg",
+      "appStore1024": "miniprogram/images/logo.svg"
+    },
+    "splashScreen": {
+      "customImage": ""
+    },
+    "privacy": {
+      "enable": true
+    },
+    "enableOpenUrlNavigate": true,
+    "privateDescriptions": {
+      "NSPhotoLibraryUsageDescription": "当前应用程序需要访问用户的相册，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSCameraUsageDescription": "当前应用程序需要访问用户的相机，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSMicrophoneUsageDescription": "当前应用程序需要访问用户的麦克风，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSLocationWhenInUseUsageDescription": "当前应用程序需要在使用时访问用户的位置，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSLocationAlwaysUsageDescription": "当前应用程序需要始终访问用户的位置，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSLocationAlwaysAndWhenInUseUsageDescription": "当前应用程序需要始终和在使用时访问用户的位置，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSContactsUsageDescription": "当前应用程序需要访问用户的联系人，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSCalendarsUsageDescription": "当前应用程序需要访问用户的日历，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSRemindersUsageDescription": "当前应用程序需要访问用户的提醒事项，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSBluetoothPeripheralUsageDescription": "当前应用程序需要访问用户的蓝牙，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSBluetoothAlwaysUsageDescription": "当前应用程序需要始终访问用户的蓝牙，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSSpeechRecognitionUsageDescription": "当前应用程序需要使用语音识别，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSLocalNetworkUsageDescription": "当前应用程序需要访问本地网络，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSSystemAdministrationUsageDescription": "当前应用程序需要进行系统管理操作，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可」",
+      "NSPhotoLibraryAddUsageDescription": "应用程序在请求访问照片库，如需修改描述请前往「project.miniapp.json - 隐私信息访问许可描述」修改，并且关闭「自动使用默认描述补全默认隐私信息访问许可"
+    },
+    "officialPlugins": {
+      "imPush": {
+        "enableNSE": false
+      }
+    },
+    "enableDebugLog": true,
+    "gdt": {
+      "splashAd_defaultEnable": false
+    }
+  }
+}

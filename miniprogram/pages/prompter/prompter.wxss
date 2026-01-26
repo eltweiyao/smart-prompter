@@ -17,7 +17,7 @@
   justify-content: flex-start; /* Align everything from left */
   align-items: center;
   padding: 5px 10px; 
-  z-index: 20;
+  z-index: 110; /* Above settings panel (100) to ensure toggle works */
   transition: opacity 0.3s;
   min-height: 40px;
   box-sizing: border-box;
@@ -25,14 +25,14 @@
 
 .left-group {
   display: flex;
-  gap: 10px;
+  gap: 15px; /* Increased gap */
   margin-right: 15px;
 }
 
 .icon-btn {
-  background: rgba(100,100,100,0.3);
-  width: 32px;
-  height: 32px;
+  background: rgba(100,100,100,0.5); /* Slightly darker */
+  width: 36px; /* Slightly larger */
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -79,7 +79,7 @@
 
 .text-content {
   width: 100%;
-  padding: 0 40rpx;
+  padding: 0 20px;
   box-sizing: border-box;
 }
 
@@ -188,51 +188,184 @@
   margin-left: 5px; /* Visual center adjustment */
 }
 
-/* Settings Panel */
+/* Settings Panel - New Transition and Layout */
 .settings-panel {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  background: #fff;
-  padding: 40rpx;
+  background: #f7f7f7; /* Slightly off-white background */
   z-index: 100;
   border-top-left-radius: 30rpx;
   border-top-right-radius: 30rpx;
-  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.1);
+  box-shadow: 0 -4rpx 30rpx rgba(0,0,0,0.15);
   box-sizing: border-box;
+  padding: 20rpx 0; /* Vertical padding, horizontal handled by children */
+  
+  /* Flexbox for dynamic height */
+  display: flex;
+  flex-direction: column;
+  
+  /* Slide-up Transition */
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s;
 }
+.settings-panel.settings-panel-show {
+  transform: translateY(0%);
+  visibility: visible;
+}
+
+.settings-panel-landscape.settings-panel-show {
+  transform: translate(-50%, 0%);
+  visibility: visible;
+}
+
+.settings-preview {
+  height: 120px;
+  margin: 10rpx 30rpx 30rpx 30rpx;
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+  transition: all 0.2s; /* Smooth transition for style changes */
+}
+.preview-text-line {
+  white-space: nowrap;
+}
+
+.settings-tabs {
+  display: flex;
+  justify-content: space-around;
+  padding: 0 15px; /* Converted from 30rpx */
+  margin-bottom: 10px; /* Converted from 20rpx */
+  border-bottom: 1px solid #e5e5e5;
+}
+.settings-tab-item {
+  padding: 10px 5px; /* Converted from 20rpx 10rpx */
+  font-size: 28rpx; /* Font size already overridden by landscape-specific rule */
+  color: #888;
+  position: relative;
+}
+.settings-tab-item.active {
+  color: #007aff;
+  font-weight: bold;
+}
+.settings-tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 6rpx;
+  background-color: #007aff;
+  border-radius: 3rpx;
+}
+
+.settings-content {
+  padding: 0 30rpx;
+  flex: 1; /* Make it grow */
+}
+
 .setting-group { margin-bottom: 40rpx; }
-.setting-title { font-size: 32rpx; font-weight: bold; margin-bottom: 20rpx; color: #333; }
+.setting-title { 
+  font-size: 28rpx; /* Slightly smaller */
+  font-weight: bold; 
+  margin-bottom: 20rpx; 
+  color: #333; 
+}
 .setting-item { margin-bottom: 20rpx; }
 .setting-item text { color: #666; font-size: 26rpx; }
 .switch-item { display: flex; justify-content: space-between; align-items: center; }
 
-.color-row { display: flex; align-items: center; margin-bottom: 20rpx; }
-.color-row text { width: 100rpx; font-size: 28rpx; color: #666; }
-.color-options { display: flex; gap: 20rpx; }
-.color-circle { width: 60rpx; height: 60rpx; border-radius: 50%; box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.2); }
+/* New Grid Layout for Colors */
+.color-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 15px;
+}
+.color-circle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.color-circle { 
+  width: 36px;
+  height: 36px;
+  border-radius: 50%; 
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.15); 
+  transition: transform 0.2s;
+}
+.color-circle:active {
+  transform: scale(0.9);
+}
+
 
 .align-options {
   display: flex;
-  gap: 20rpx;
+  gap: 10px; /* Reduced gap */
   margin-top: 10rpx;
 }
 .align-btn {
   flex: 1;
-  text-align: center;
-  padding: 15rpx 0;
-  background: #f0f0f0;
-  border-radius: 10rpx;
-  font-size: 26rpx;
-  color: #666;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  background: #ebebeb;
+  border-radius: 5px; /* Converted from 10rpx */
+  transition: background-color 0.2s;
 }
 .align-btn.active {
   background: #007aff;
-  color: #fff;
+}
+.align-btn.active .icon-align {
+  background: #fff;
 }
 
-.btn-close-settings { background: #f0f0f0; color: #333; margin-top: 10rpx; }
+/* New Alignment Icons using views */
+.icon-align {
+  display: block;
+  width: 20px;
+  height: 14px;
+  position: relative;
+}
+.icon-align::before, .icon-align::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  height: 2px;
+  background: #555;
+  border-radius: 1px;
+}
+.icon-align-left::before { top: 0; width: 100%; }
+.icon-align-left::after { top: 6px; width: 60%; }
+.icon-align-center::before { top: 0; width: 100%; }
+.icon-align-center::after { top: 6px; width: 100%; }
+.icon-align-right::before { top: 0; width: 100%; }
+.icon-align-right::after { top: 6px; width: 60%; right: 0; left: auto; }
+
+
+.btn-close-settings { 
+  background: #007aff; 
+  color: #fff; 
+  margin: 15px 15px 0 15px; /* Converted from 30rpx */
+  font-weight: bold;
+}
+
+.settings-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  color: #999;
+  font-size: 14px;
+  text-align: center;
+}
 
 /* Focus Masks */
 .focus-mask-top, .focus-mask-bottom {
@@ -278,43 +411,78 @@
 }
 
 .settings-panel-landscape {
-  width: 60vw;
+  width: 96%;
+  max-width: 600px;
   left: 50%;
-  transform: translateX(-50%);
-  border-top-left-radius: 20rpx;
-  border-top-right-radius: 20rpx;
-  max-height: 85vh;
-  padding: 10px; /* Reduced from 40rpx (20px) */
+  transform: translate(-50%, 100%);
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  max-height: 90vh;
+  padding: 5px 0;
+}
+
+.settings-panel-landscape .settings-preview {
+  display: none; /* Hide preview in landscape to save critical vertical space */
+}
+
+.settings-panel-landscape .settings-tabs {
+  margin-bottom: 5px;
+}
+
+.settings-panel-landscape .settings-tab-item {
+  padding: 8px 12px;
+  font-size: 14px; /* Matches ~28rpx in portrait */
+}
+
+.settings-panel-landscape .settings-content {
+  padding: 0 20px;
 }
 
 .settings-panel-landscape .setting-group {
-  margin-bottom: 10px; /* Reduced from 20rpx (10px) */
+  margin-bottom: 12px;
 }
+
 .settings-panel-landscape .setting-title {
-  font-size: 16px;
-  margin-bottom: 8px; /* Reduced from 15rpx (7.5px) */
+  font-size: 14px;
+  margin-bottom: 8px;
 }
-.settings-panel-landscape .setting-item { /* Added for compactness */
-  margin-bottom: 8px; /* Original was 20rpx (10px) */
+
+.settings-panel-landscape .setting-item {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
 }
+
 .settings-panel-landscape .setting-item text {
   font-size: 13px;
+  width: 100px;
+  flex-shrink: 0;
 }
-.settings-panel-landscape .align-btn {
-  font-size: 13px;
+
+.settings-panel-landscape slider {
+  flex: 1;
+  margin: 10px;
 }
-.settings-panel-landscape .align-options { /* Added for compactness */
-  margin-top: 5px; /* Original was 10rpx (5px) */
+
+.settings-panel-landscape .color-options-grid {
+  gap: 10px;
 }
-.settings-panel-landscape .color-row { /* Added for compactness */
-  margin-bottom: 8px; /* Original was 20rpx (10px) */
-}
-.settings-panel-landscape .color-row text {
-  font-size: 14px;
-}
+
 .settings-panel-landscape .color-circle {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
+}
+
+.settings-panel-landscape .align-btn {
+  height: 32px;
+}
+
+.settings-panel-landscape .btn-close-settings {
+  margin: 10px 20px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 2.4;
+  width: auto;
 }
 
 .focus-line-container-landscape .focus-arrow {
@@ -322,6 +490,47 @@
 }
 .focus-line-container-landscape .focus-line {
   height: 2px;
+}
+
+.record-controls-landscape {
+  left: auto;
+  right: 0;
+  top: 0;
+  bottom: 55px;
+  width: 80px;
+  flex-direction: column-reverse;
+  justify-content: center;
+  align-items: center;
+  padding: 25px 0;
+  gap: 60px;
+}
+
+.record-controls-landscape .rc-record-wrapper {
+  width: 70px;
+  height: 70px;
+}
+
+.record-controls-landscape .rc-record-btn {
+  width: 60px;
+  height: 60px;
+  border: 3px solid white;
+}
+
+.record-controls-landscape .rc-record-btn.recording::before {
+  width: 25px;
+  height: 25px;
+  border-radius: 5px;
+  margin: 15px auto;
+}
+
+.record-controls-landscape .rc-switch-camera {
+  width: 50px;
+  height: 50px;
+}
+
+.record-controls-landscape .rc-switch-icon-img {
+  width: 25px;
+  height: 25px;
 }
 
 
