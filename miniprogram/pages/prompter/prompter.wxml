@@ -90,12 +90,8 @@
   </view>
 
   <!-- Settings Panel -->
-  <view class="settings-panel {{isLandscape ? 'settings-panel-landscape' : ''}} {{showSettings ? 'settings-panel-show' : ''}}">
-    <!-- Live Preview -->
-    <view class="settings-preview" style="background-color: {{bgColor}}; color: {{fontColor}}; font-size: {{fontSize}}px; line-height: {{lineHeight}}; letter-spacing: {{letterSpacing}}px; text-align: {{textAlign}};">
-      <view class="preview-text-line">这是预览文字</view>
-      <view class="preview-text-line">实时查看效果</view>
-    </view>
+  <view class="settings-mask {{showSettings ? 'visible' : ''}}" bindtap="toggleSettings"></view>
+  <view class="settings-panel {{isLandscape ? 'settings-panel-side' : 'settings-panel-bottom'}} {{showSettings ? 'visible' : ''}}">
     
     <!-- Tabs -->
     <view class="settings-tabs">
@@ -111,15 +107,15 @@
         <view class="setting-group">
           <view class="setting-item">
             <text>字号 ({{fontSize}}px)</text>
-            <slider min="20" max="80" value="{{fontSize}}" bindchange="onFontSizeChange" />
+            <slider min="20" max="80" value="{{fontSize}}" bindchange="onFontSizeChange" block-size="20"/>
           </view>
           <view class="setting-item">
             <text>行间距 ({{lineHeight}})</text>
-            <slider min="1.0" max="3.0" step="0.1" value="{{lineHeight}}" bindchange="onLineHeightChange" />
+            <slider min="1.0" max="3.0" step="0.1" value="{{lineHeight}}" bindchange="onLineHeightChange" block-size="20"/>
           </view>
           <view class="setting-item">
             <text>字间距 ({{letterSpacing}}px)</text>
-            <slider min="0" max="10" step="1" value="{{letterSpacing}}" bindchange="onLetterSpacingChange" />
+            <slider min="0" max="10" step="1" value="{{letterSpacing}}" bindchange="onLetterSpacingChange" block-size="20"/>
           </view>
           <view class="setting-item">
             <text>对齐方式</text>
@@ -139,18 +135,20 @@
       </view>
 
       <!-- Scroll Settings -->
-      <view wx:if="{{activeSettingsTab === 'scroll' && mode === 'basic'}}">
-        <view class="setting-group">
-          <view class="setting-item">
-            <text>开始倒计时 ({{countdownDuration}}秒)</text>
-            <slider min="0" max="10" value="{{countdownDuration}}" bindchange="onCountdownDurationChange" />
+      <view wx:if="{{activeSettingsTab === 'scroll'}}">
+        <block wx:if="{{mode === 'basic'}}">
+          <view class="setting-group">
+            <view class="setting-item">
+              <text>开始倒计时 ({{countdownDuration}}秒)</text>
+              <slider min="0" max="10" value="{{countdownDuration}}" bindchange="onCountdownDurationChange" block-size="20"/>
+            </view>
+            <view class="setting-item">
+              <text>每分钟字数 ({{wordsPerMinute}})</text>
+              <slider min="60" max="400" value="{{wordsPerMinute}}" bindchange="onWpmChange" block-size="20"/>
+            </view>
           </view>
-          <view class="setting-item">
-            <text>每分钟字数 ({{wordsPerMinute}})</text>
-            <slider min="60" max="400" value="{{wordsPerMinute}}" bindchange="onWpmChange" />
-          </view>
-        </view>
-         <view wx:if="{{mode !== 'basic'}}" class="settings-placeholder">
+        </block>
+        <view wx:else class="settings-placeholder">
           <text>滚动设置仅在“基础”模式下可用</text>
         </view>
       </view>
@@ -160,8 +158,8 @@
         <view class="setting-group">
           <view class="setting-title">文字颜色</view>
           <view class="color-options-grid">
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#FFFFFF"><view class="color-circle" style="background:#FFFFFF;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#000000"><view class="color-circle" style="background:#000000;"></view></view>
+            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#FFFFFF"><view class="color-circle" style="background:#FFFFFF; border: 1px solid #ddd;"></view></view>
+            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#000000"><view class="color-circle" style="background:#000000; border: 1px solid #ddd;"></view></view>
             <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#FFD700"><view class="color-circle" style="background:#FFD700;"></view></view>
             <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#1E90FF"><view class="color-circle" style="background:#1E90FF;"></view></view>
             <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#FF4500"><view class="color-circle" style="background:#FF4500;"></view></view>
@@ -170,8 +168,8 @@
         <view class="setting-group">
           <view class="setting-title">背景颜色</view>
           <view class="color-options-grid">
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#000000"><view class="color-circle" style="background:#000000;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#FFFFFF"><view class="color-circle" style="background:#FFFFFF; border: 1px solid #eee;"></view></view>
+            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#000000"><view class="color-circle" style="background:#000000; border: 1px solid #ddd;"></view></view>
+            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#FFFFFF"><view class="color-circle" style="background:#FFFFFF; border: 1px solid #ddd;"></view></view>
             <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#00B140"><view class="color-circle" style="background:#00B140;"></view></view>
              <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#191970"><view class="color-circle" style="background:#191970;"></view></view>
             <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#808080"><view class="color-circle" style="background:#808080;"></view></view>
@@ -184,7 +182,7 @@
         <view class="setting-group">
           <view class="setting-item">
             <text>基准线位置 ({{baselinePercent}}%)</text>
-            <slider min="20" max="80" step="5" value="{{baselinePercent}}" bindchange="onBaselineChange" />
+            <slider min="20" max="80" step="5" value="{{baselinePercent}}" bindchange="onBaselineChange" block-size="20"/>
           </view>
           <view class="setting-item switch-item">
             <text>台本聚焦模式</text>
@@ -209,4 +207,30 @@
     <image class="rc-switch-icon-img" src="../../images/camera-switch.svg" />
   </view>
 </view>
+
+<!-- Guide Overlay -->
+<view class="guide-overlay" wx:if="{{showGuide}}">
+  <view class="guide-mask"></view>
+  
+  <!-- Step 1: Mode Switch -->
+  <view class="guide-step step-mode">
+    <view class="guide-arrow arrow-top">↑</view>
+    <view class="guide-text">切换模式</view>
+  </view>
+
+  <!-- Step 2: Settings -->
+  <view class="guide-step step-settings">
+    <view class="guide-arrow arrow-top">↑</view>
+    <view class="guide-text">提词设置</view>
+  </view>
+
+  <!-- Step 3: Play Button -->
+  <view class="guide-step step-play">
+    <view class="guide-arrow arrow-bottom">↓</view>
+    <view class="guide-text">点击开始提词</view>
+  </view>
+
+  <view class="btn-guide-confirm" bindtap="closeGuide">我知道了</view>
+</view>
+
 </view>

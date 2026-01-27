@@ -14,24 +14,28 @@
   left: 0;
   width: 100%;
   display: flex;
-  justify-content: flex-start; /* Align everything from left */
+  justify-content: flex-start;
   align-items: center;
   padding: 5px 10px; 
-  z-index: 110; /* Above settings panel (100) to ensure toggle works */
+  z-index: 110;
   transition: opacity 0.3s;
   min-height: 40px;
   box-sizing: border-box;
 }
+.header-landscape {
+  padding-left: 50rpx !important;
+  padding-right: 50rpx !important;
+}
 
 .left-group {
   display: flex;
-  gap: 15px; /* Increased gap */
+  gap: 15px;
   margin-right: 15px;
 }
 
 .icon-btn {
-  background: rgba(100,100,100,0.5); /* Slightly darker */
-  width: 36px; /* Slightly larger */
+  background: rgba(100,100,100,0.5);
+  width: 36px;
   height: 36px;
   border-radius: 50%;
   display: flex;
@@ -48,7 +52,7 @@
 }
 
 .right-placeholder {
-  flex: 1; /* Pushes content but respects capsule button area */
+  flex: 1;
 }
 .mode-item {
   padding: 5px 15px;
@@ -68,12 +72,10 @@
   overflow: hidden;
   position: relative;
   z-index: 10;
-  /* Capture touches */
 }
 
 .prompter-content {
   width: 100%;
-  /* Hardware acceleration hint */
   will-change: transform;
 }
 
@@ -83,7 +85,6 @@
   box-sizing: border-box;
 }
 
-/* Padding space is now handled via inline styles for dynamic sizing */
 .padding-space {
   /* height set by inline style */
 }
@@ -91,7 +92,6 @@
 /* Focus Line Indicator */
 .focus-line-container {
   position: absolute;
-  /* top set by inline style */
   left: 0;
   width: 100%;
   height: 4rpx;
@@ -113,23 +113,29 @@
   height: 4rpx;
   background: #007aff;
 }
+.focus-line-container-landscape .focus-arrow {
+  font-size: 20px;
+}
+.focus-line-container-landscape .focus-line {
+  height: 2px;
+}
 
 
 .ai-feedback-fixed {
   position: absolute;
-  bottom: 30rpx; /* Moved down */
+  bottom: 30rpx;
   left: 50%;
   transform: translateX(-50%);
   z-index: 45;
   animation: pulse 2s infinite;
 }
 .ai-status {
-  font-size: 26rpx;
+  font-size: 13px;
   color: #007aff;
   background: rgba(0,122,255,0.15);
   backdrop-filter: blur(4px);
-  padding: 12rpx 30rpx;
-  border-radius: 40rpx;
+  padding: 6px 15px;
+  border-radius: 20px;
   border: 1px solid rgba(0,122,255,0.3);
   white-space: nowrap;
 }
@@ -149,7 +155,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  pointer-events: auto; /* Ensure clickable */
+  pointer-events: auto;
 }
 
 .btn-play-round {
@@ -172,7 +178,7 @@
 }
 
 .btn-play-ai {
-  background: rgba(88, 86, 214, 0.6); /* Purple tint for AI */
+  background: rgba(88, 86, 214, 0.6);
   border-color: rgba(255, 255, 255, 0.9);
 }
 .btn-play-ai:active {
@@ -185,68 +191,83 @@
   border-top: 12px solid transparent;
   border-bottom: 12px solid transparent;
   border-left: 20px solid #fff;
-  margin-left: 5px; /* Visual center adjustment */
+  margin-left: 5px;
 }
 
-/* Settings Panel - New Transition and Layout */
+/* --- New Settings Panel --- */
+
+/* Mask for background dimming */
+.settings-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+  pointer-events: none;
+}
+.settings-mask.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Base Settings Panel */
 .settings-panel {
-  position: absolute;
+  position: fixed;
+  background: rgba(247, 247, 247, 0.98);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  box-shadow: 0 0 40rpx rgba(0,0,0,0.2);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s;
+  visibility: hidden;
+}
+
+.settings-panel.visible {
+  visibility: visible;
+  transform: translate(0, 0);
+}
+
+/* PORTRAIT: Bottom Sheet */
+.settings-panel-bottom {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: #f7f7f7; /* Slightly off-white background */
-  z-index: 100;
+  max-height: 70vh;
   border-top-left-radius: 30rpx;
   border-top-right-radius: 30rpx;
-  box-shadow: 0 -4rpx 30rpx rgba(0,0,0,0.15);
-  box-sizing: border-box;
-  padding: 20rpx 0; /* Vertical padding, horizontal handled by children */
-  
-  /* Flexbox for dynamic height */
-  display: flex;
-  flex-direction: column;
-  
-  /* Slide-up Transition */
+  padding: 20rpx 0;
   transform: translateY(100%);
-  visibility: hidden;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s;
-}
-.settings-panel.settings-panel-show {
-  transform: translateY(0%);
-  visibility: visible;
 }
 
-.settings-panel-landscape.settings-panel-show {
-  transform: translate(-50%, 0%);
-  visibility: visible;
-}
-
-.settings-preview {
-  height: 120px;
-  margin: 10rpx 30rpx 30rpx 30rpx;
-  border-radius: 20rpx;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-  transition: all 0.2s; /* Smooth transition for style changes */
-}
-.preview-text-line {
-  white-space: nowrap;
+/* LANDSCAPE: Side Drawer */
+.settings-panel-side {
+  top: 0;
+  right: 0;
+  width: 350px;
+  max-width: 80vw;
+  height: 100%;
+  border-top-left-radius: 30rpx;
+  border-bottom-left-radius: 30rpx;
+  padding: 40rpx 0;
+  transform: translateX(100%);
 }
 
 .settings-tabs {
   display: flex;
   justify-content: space-around;
-  padding: 0 15px; /* Converted from 30rpx */
-  margin-bottom: 10px; /* Converted from 20rpx */
+  padding: 0 15px;
+  margin-bottom: 15px;
   border-bottom: 1px solid #e5e5e5;
+  flex-shrink: 0;
 }
 .settings-tab-item {
-  padding: 10px 5px; /* Converted from 20rpx 10rpx */
-  font-size: 28rpx; /* Font size already overridden by landscape-specific rule */
+  padding: 10px 5px;
+  font-size: 14px;
   color: #888;
   position: relative;
 }
@@ -261,28 +282,40 @@
   left: 50%;
   transform: translateX(-50%);
   width: 40%;
-  height: 6rpx;
+  height: 3px;
   background-color: #007aff;
-  border-radius: 3rpx;
+  border-radius: 2px;
 }
 
 .settings-content {
-  padding: 0 30rpx;
-  flex: 1; /* Make it grow */
+  padding: 0 15px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* Important for nested flex scrolling */
 }
 
-.setting-group { margin-bottom: 40rpx; }
+.setting-group { margin-bottom: 20px; }
 .setting-title { 
-  font-size: 28rpx; /* Slightly smaller */
+  font-size: 14px;
   font-weight: bold; 
-  margin-bottom: 20rpx; 
+  margin-bottom: 10px; 
   color: #333; 
 }
-.setting-item { margin-bottom: 20rpx; }
-.setting-item text { color: #666; font-size: 26rpx; }
+.setting-item { margin-bottom: 15px; }
+.setting-item text { 
+  display: block;
+  color: #666; 
+  font-size: 13px; 
+  margin-bottom: 5px;
+}
 .switch-item { display: flex; justify-content: space-between; align-items: center; }
+.switch-item text { margin-bottom: 0; }
 
-/* New Grid Layout for Colors */
+slider {
+  margin: 0;
+}
+
+/* Color Grid */
 .color-options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
@@ -304,10 +337,10 @@
   transform: scale(0.9);
 }
 
-
+/* Alignment Buttons */
 .align-options {
   display: flex;
-  gap: 10px; /* Reduced gap */
+  gap: 10px;
   margin-top: 10rpx;
 }
 .align-btn {
@@ -317,7 +350,7 @@
   align-items: center;
   height: 40px;
   background: #ebebeb;
-  border-radius: 5px; /* Converted from 10rpx */
+  border-radius: 5px;
   transition: background-color 0.2s;
 }
 .align-btn.active {
@@ -327,7 +360,6 @@
   background: #fff;
 }
 
-/* New Alignment Icons using views */
 .icon-align {
   display: block;
   width: 20px;
@@ -349,12 +381,12 @@
 .icon-align-right::before { top: 0; width: 100%; }
 .icon-align-right::after { top: 6px; width: 60%; right: 0; left: auto; }
 
-
 .btn-close-settings { 
   background: #007aff; 
   color: #fff; 
-  margin: 15px 15px 0 15px; /* Converted from 30rpx */
+  margin: 15px 15px 15px 15px;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .settings-placeholder {
@@ -372,13 +404,10 @@
   position: absolute;
   left: 0;
   width: 100%;
-  z-index: 15; /* Above text, below header/controls */
+  z-index: 15;
   pointer-events: none;
 }
-.focus-mask-top {
-  top: 0;
-}
-/* Bottom mask top position is set via inline style */
+.focus-mask-top { top: 0; }
 
 /* Countdown Overlay */
 .countdown-overlay {
@@ -392,10 +421,10 @@
   background: rgba(0,0,0,0.3);
 }
 .countdown-text {
-  font-size: 160rpx;
+  font-size: 80px;
   font-weight: bold;
   color: #fff;
-  text-shadow: 0 4rpx 10rpx rgba(0,0,0,0.5);
+  text-shadow: 0 2px 5px rgba(0,0,0,0.5);
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -404,137 +433,7 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* Landscape-specific adjustments */
-.header-landscape {
-  padding-left: 50rpx !important;
-  padding-right: 50rpx !important;
-}
-
-.settings-panel-landscape {
-  width: 96%;
-  max-width: 600px;
-  left: 50%;
-  transform: translate(-50%, 100%);
-  border-top-left-radius: 15px;
-  border-top-right-radius: 15px;
-  max-height: 90vh;
-  padding: 5px 0;
-}
-
-.settings-panel-landscape .settings-preview {
-  display: none; /* Hide preview in landscape to save critical vertical space */
-}
-
-.settings-panel-landscape .settings-tabs {
-  margin-bottom: 5px;
-}
-
-.settings-panel-landscape .settings-tab-item {
-  padding: 8px 12px;
-  font-size: 14px; /* Matches ~28rpx in portrait */
-}
-
-.settings-panel-landscape .settings-content {
-  padding: 0 20px;
-}
-
-.settings-panel-landscape .setting-group {
-  margin-bottom: 12px;
-}
-
-.settings-panel-landscape .setting-title {
-  font-size: 14px;
-  margin-bottom: 8px;
-}
-
-.settings-panel-landscape .setting-item {
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-}
-
-.settings-panel-landscape .setting-item text {
-  font-size: 13px;
-  width: 100px;
-  flex-shrink: 0;
-}
-
-.settings-panel-landscape slider {
-  flex: 1;
-  margin: 10px;
-}
-
-.settings-panel-landscape .color-options-grid {
-  gap: 10px;
-}
-
-.settings-panel-landscape .color-circle {
-  width: 28px;
-  height: 28px;
-}
-
-.settings-panel-landscape .align-btn {
-  height: 32px;
-}
-
-.settings-panel-landscape .btn-close-settings {
-  margin: 10px 20px;
-  padding: 0;
-  font-size: 16px;
-  line-height: 2.4;
-  width: auto;
-}
-
-.focus-line-container-landscape .focus-arrow {
-  font-size: 20px;
-}
-.focus-line-container-landscape .focus-line {
-  height: 2px;
-}
-
-.record-controls-landscape {
-  left: auto;
-  right: 0;
-  top: 0;
-  bottom: 55px;
-  width: 80px;
-  flex-direction: column-reverse;
-  justify-content: center;
-  align-items: center;
-  padding: 25px 0;
-  gap: 60px;
-}
-
-.record-controls-landscape .rc-record-wrapper {
-  width: 70px;
-  height: 70px;
-}
-
-.record-controls-landscape .rc-record-btn {
-  width: 60px;
-  height: 60px;
-  border: 3px solid white;
-}
-
-.record-controls-landscape .rc-record-btn.recording::before {
-  width: 25px;
-  height: 25px;
-  border-radius: 5px;
-  margin: 15px auto;
-}
-
-.record-controls-landscape .rc-switch-camera {
-  width: 50px;
-  height: 50px;
-}
-
-.record-controls-landscape .rc-switch-icon-img {
-  width: 25px;
-  height: 25px;
-}
-
-
-/* --- New Styles for Recording --- */
+/* Camera and Recording */
 .page-wrapper {
   width: 100vw;
   height: 100vh;
@@ -548,17 +447,16 @@
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1; /* Behind prompter content */
+  z-index: 1;
 }
 
 .container-prompter {
-  z-index: 2; /* In front of camera */
+  z-index: 2;
 }
-
 
 .record-controls {
   position: absolute;
-  bottom: 110rpx; /* Moved down slightly */
+  bottom: 110rpx;
   left: 0;
   width: 100%;
   padding: 50rpx 100rpx;
@@ -566,7 +464,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 30; /* Above text, below settings */
+  z-index: 30;
 }
 .record-controls-landscape {
   left: auto;
@@ -607,7 +505,6 @@
   transform: rotate(90deg);
 }
 
-
 .rc-record-btn {
   width: 120rpx;
   height: 120rpx;
@@ -619,7 +516,6 @@
 .rc-record-btn.recording {
   background-color: transparent;
 }
-/* Inner square/pause bars for state change */
 .rc-record-btn.recording::before {
   content: '';
   display: block;
@@ -640,10 +536,9 @@
   margin: 30rpx auto;
 }
 
-
 .rc-switch-camera {
-  width: 100rpx; /* Increased size */
-  height: 100rpx; /* Increased size */
+  width: 100rpx;
+  height: 100rpx;
   border-radius: 50%;
   background: rgba(100, 100, 100, 0.4);
   backdrop-filter: blur(5px);
@@ -656,7 +551,84 @@
 }
 
 .rc-switch-icon-img {
-  width: 50rpx; /* Increased size */
-  height: 50rpx; /* Increased size */
+  width: 50rpx;
+  height: 50rpx;
 }
 
+/* --- Guide Overlay --- */
+.guide-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 200;
+  pointer-events: auto;
+}
+
+.guide-mask {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.guide-step {
+  position: absolute;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.guide-text {
+  font-size: 16px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 12px;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  margin-bottom: 5px;
+}
+
+.guide-arrow {
+  font-size: 30px;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* Positioning steps relative to the UI elements */
+.step-mode {
+  top: 100px; /* Below the header */
+  left: 160px; /* Align with Mode Switch (approx) */
+  transform: translateX(-50%);
+}
+
+.step-settings {
+  top: 100px;
+  left: 79px; /* Align with Settings Icon center */
+  transform: translateX(-50%);
+}
+.guide-arrow.arrow-top-left {
+  /* Removed: using standard arrow-top for settings too */
+}
+
+.step-play {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -130%); /* Above the play button */
+}
+
+.btn-guide-confirm {
+  position: absolute;
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid #fff;
+  color: #fff;
+  background: transparent;
+  padding: 10px 40px;
+  border-radius: 30px;
+  font-size: 18px;
+  z-index: 201;
+}
+.btn-guide-confirm:active {
+  background: rgba(255,255,255,0.2);
+}

@@ -104,6 +104,7 @@ Page({
     recordStatus: 'ready', // 'ready', 'recording', 'paused'
     activeSettingsTab: 'display',
     cameraStyle: '',
+    showGuide: false,
   },
   
   // Internal State
@@ -113,6 +114,10 @@ Page({
   lastTouchY: 0, 
   uiHideTimer: null,
   cameraContext: null,
+
+  closeGuide: function() {
+    this.setData({ showGuide: false });
+  },
 
   switchSettingsTab: function(e) {
     this.setData({
@@ -148,6 +153,13 @@ Page({
     });
 
     this.updateCameraView();
+
+    // Check Guide
+    const hasSeenGuide = wx.getStorageSync('hasSeenGuide');
+    if (!hasSeenGuide) {
+       this.setData({ showGuide: true });
+       wx.setStorageSync('hasSeenGuide', true);
+    }
 
     // Load User Settings
     this.loadSettings();
@@ -533,13 +545,23 @@ Page({
       this.momentumId = null;
     }
 
+    // Logic Change: Pause instead of Stop
     if (this.data.isRunning) {
-      this.stopAll();
+      this.wasRunning = true;
+      if (this.data.mode === 'basic') {
+        this.pauseBasicScroll();
+      } else {
+        this.stopSmartLoop(); // Pause loop, keep ASR
+      }
+    } else {
+      this.wasRunning = false;
     }
+
     this.lastTouchY = e.touches[0].clientY;
     this.lastTouchTs = e.timeStamp;
     this.lastSpeed = 0;
-    this.isScrolling = false; // Reset scrolling flag
+    this.isScrolling = false; 
+    this.pendingPause = false; // Reset safe guard
   },
   
   onTouchMove: function(e) {
@@ -556,12 +578,17 @@ Page({
       this.lastSpeed = delta / timeDelta;
     }
     
-    const newOffset = this.data.offsetY + delta;
-    
-    this.setData({
-      offsetY: newOffset,
-      transitionStyle: 'none'
-    });
+    if (this.pendingPause) {
+       // We are waiting for the real starting Y. Accumulate delta.
+       if (!this.accumulatedDelta) this.accumulatedDelta = 0;
+       this.accumulatedDelta += delta;
+    } else {
+       const newOffset = this.data.offsetY + delta;
+       this.setData({
+         offsetY: newOffset,
+         transitionStyle: 'none'
+       });
+    }
   },
   
   onTouchEnd: function() {
@@ -572,6 +599,18 @@ Page({
   momentumLoop: function() {
     if (Math.abs(this.lastSpeed) < 0.01) {
       this.lastSpeed = 0;
+      
+      // Resume logic
+      if (this.wasRunning && this.isScrolling) {
+         console.log('Resuming after scroll...');
+         if (this.data.mode === 'basic') {
+           this.runBasicScrollAnimation();
+         } else if (this.data.mode === 'smart') {
+           this.syncMatcherToOffset();
+           this.runSmartLoop();
+         }
+         this.wasRunning = false;
+      }
       return;
     }
 
@@ -587,6 +626,53 @@ Page({
     } else {
       this.momentumId = setTimeout(this.momentumLoop.bind(this), 16);
     }
+  },
+
+  pauseBasicScroll: function() {
+    this.pendingPause = true;
+    this.accumulatedDelta = 0;
+    
+    const query = wx.createSelectorQuery();
+    query.select('.prompter-content').fields({ computedStyle: ['transform'] });
+    
+    query.exec((res) => {
+      this.pendingPause = false; // Callback done
+      
+      if (!res[0]) return;
+      const matrix = res[0].transform;
+      let currentY = this.data.offsetY; 
+      
+      if (matrix && matrix !== 'none') {
+        const values = matrix.split('(')[1].split(')')[0].split(',');
+        if (values.length === 6) {
+          currentY = parseFloat(values[5]);
+        }
+      }
+      
+      // Apply any accumulated delta from moves that happened while waiting
+      const finalY = currentY + (this.accumulatedDelta || 0);
+      
+      this.setData({
+        transitionStyle: 'none',
+        offsetY: finalY
+      });
+      
+      this.accumulatedDelta = 0;
+    });
+  },
+
+  syncMatcherToOffset: function() {
+    if (!this.matcher || !this.contentHeight) return;
+    const lineH = this.data.fontSize * this.data.lineHeight;
+    const currentProgress = (Math.abs(this.data.offsetY) - lineH) / this.contentHeight;
+    const safeProgress = Math.max(0, Math.min(1, currentProgress));
+    
+    const cleanScript = this.data.content.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '');
+    const newIndex = Math.floor(cleanScript.length * safeProgress);
+    
+    console.log('Syncing matcher to index:', newIndex);
+    this.matcher.lastIndex = newIndex;
+    this.targetOffsetY = this.data.offsetY;
   },
 
   startBasicScroll: function() {
