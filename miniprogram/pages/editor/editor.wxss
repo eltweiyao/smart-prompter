@@ -26,19 +26,57 @@
   width: 100%;
   font-size: 30rpx;
   padding: 20rpx;
-  background: #fff;
-  border-radius: 8rpx;
   box-sizing: border-box;
   line-height: 1.6;
 }
 
+.content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8rpx;
+  padding-bottom: 20rpx;
+}
+
+.input-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.right-actions {
+  display: flex;
+  align-items: center;
+}
+
+.beautify-btn {
+  color: #007aff;
+  padding: 10rpx 20rpx;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 20rpx;
+  margin-left: 20rpx;
+}
+
+.clear-btn {
+  color: #ff3b30;
+  padding: 10rpx 20rpx;
+  background: rgba(255, 59, 48, 0.1);
+  border-radius: 20rpx;
+  margin-left: 20rpx;
+}
+
 .btn-group {
-  padding: 20rpx 30rpx;
+  padding: 20rpx 30rpx 40rpx;
 }
 
 .btn-save {
   background: #007aff;
   color: #fff;
   border-radius: 50rpx;
-  width: 100%;
+  width: 100% !important;
+  margin-top: 10rpx;
 }

@@ -16,6 +16,7 @@
       </view>
       <view class="right-actions">
         <text class="char-count">{{content.length}} 字</text>
+        <view class="beautify-btn" bindtap="processContent" wx:if="{{content.length > 0}}">✨ 美化</view>
         <view class="clear-btn" bindtap="clearContent" wx:if="{{content.length > 0}}">清空</view>
       </view>
     </view>

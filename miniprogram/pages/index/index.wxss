@@ -65,6 +65,14 @@
   align-items: center;
 }
 
+.beautify-btn {
+  color: #007aff;
+  padding: 10rpx 20rpx;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 20rpx;
+  margin-left: 20rpx;
+}
+
 .clear-btn {
   color: #ff3b30;
   padding: 10rpx 20rpx;

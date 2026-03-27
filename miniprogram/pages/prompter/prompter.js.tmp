@@ -1,0 +1,33 @@
+const plugin = requirePlugin("wechat-si");
+const manager = plugin.getRecordRecognitionManager();
+const AnchorTextMatcher = require('../../utils/matcher.js');
+let scrollTimer = null;
+
+Page({
+  measureLayout: function(callback) {
+    const query = wx.createSelectorQuery().in(this);
+    query.select('.text-content').boundingClientRect();
+    query.select('.prompter-viewport').boundingClientRect();
+    query.exec((res) => {
+      if (res && res[0] && res[1]) {
+        this.contentHeight = res[0].height;
+        this.viewportHeight = res[1].height;
+        console.log('✅ Layout Ready:', this.contentHeight, this.viewportHeight);
+        if (typeof callback === 'function') {
+          callback({ contentHeight: this.contentHeight, viewportHeight: this.viewportHeight });
+        }
+      } else {
+        if (typeof callback === 'function') callback(null);
+      }
+    });
+  },
+
+  initLayoutLoop: function() {
+    this.measureLayout((layout) => {
+      if (!layout || layout.contentHeight <= 0) {
+        setTimeout(() => this.initLayoutLoop(), 500);
+      }
+    });
+  },
+
+  data: {

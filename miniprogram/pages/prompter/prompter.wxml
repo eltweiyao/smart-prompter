@@ -42,6 +42,7 @@
   <view wx:if="{{focusEnabled}}" class="focus-mask-bottom" style="top: {{baselinePercent + 10}}%; height: {{100 - (baselinePercent + 10)}}%; background: linear-gradient(to top, {{bgColor}} 30%, transparent 100%);"></view>
 
   <!-- Prompter Text Area -->
+  <wxs src="./prompter.wxs" module="anim" />
   <view 
     class="prompter-viewport"
     bindtouchstart="onTouchStart"
@@ -52,6 +53,9 @@
     <view 
       class="prompter-content"
       style="transform: translateY({{offsetY}}px); transition: {{transitionStyle}};"
+      change:offsetY="{{anim.targetYChange}}"
+      offsetY="{{offsetY}}"
+      data-mode="{{mode}}"
     >
       <!-- Dynamic Padding based on Baseline -->
       <view class="padding-space" style="height: {{baselinePercent}}vh;"></view>
@@ -77,7 +81,7 @@
   <!-- Bottom Controls -->
   <view class="controls" wx:if="{{!isRunning && countdown === 0 && !uiHidden}}">
     <block wx:if="{{mode === 'basic'}}">
-      <view class="btn-play-round" bindtap="startBasicScroll">
+      <view class="btn-play-round" catchtap="startBasicScroll">
         <view class="icon-play"></view>
       </view>
     </block>

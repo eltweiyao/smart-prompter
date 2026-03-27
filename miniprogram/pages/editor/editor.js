@@ -61,6 +61,27 @@ Page({
     wx.navigateBack();
   },
 
+  processContent: function() {
+    let content = this.data.content;
+    if (!content) {
+      wx.showToast({ title: '内容不能为空', icon: 'none' });
+      return;
+    }
+
+    // Replace all newlines with a single space
+    content = content.replace(/[\n\r]+/g, '');
+    // Replace multiple spaces with a single space
+    content = content.replace(/\s+/g, '');
+    // Trim leading/trailing spaces
+    content = content.trim();
+
+    this.setData({ content: content });
+  },
+
+  clearContent: function() {
+    this.setData({ content: '' });
+  },
+
   onShareAppMessage: function () {
     return {
       title: '智能题词器',

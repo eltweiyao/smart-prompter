@@ -1,0 +1,28 @@
+
+function targetYChange(newVal, oldVal, ownerInstance, instance) {
+  var content = ownerInstance.selectComponent('.prompter-content');
+  if (!content) return;
+
+  if (newVal === null || newVal === undefined) return;
+  
+  var dataset = content.getDataset();
+  var mode = dataset.mode || 'basic';
+
+  if (mode === 'smart') {
+    // 仅在智能跟随模式下接管动画，保证 ASR 增量更新时的丝滑感
+    content.setStyle({
+      'transform': 'translateY(' + newVal + 'px)',
+      'transition': 'transform 0.4s ease-out'
+    });
+  } else {
+    // 基础模式下，WXS 不应干预 transition 样式，
+    // 否则会覆盖 JS 设置的匀速线性动画，导致瞬间跳转。
+    content.setStyle({
+      'transform': 'translateY(' + newVal + 'px)'
+    });
+  }
+}
+
+module.exports = {
+  targetYChange: targetYChange
+};
