@@ -201,7 +201,112 @@
   border-top-right-radius: 30rpx;
   box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.1);
   box-sizing: border-box;
+  display: none;
 }
+
+.settings-panel-bottom {
+  bottom: 0;
+  top: auto;
+  left: 0;
+  border-radius: 30rpx 30rpx 0 0;
+}
+.settings-panel-bottom.visible {
+  display: block;
+}
+
+.settings-panel-side {
+  bottom: auto;
+  top: 50%;
+  left: 50%;
+  width: 60vw;
+  border-radius: 20rpx;
+  max-height: 85vh;
+  padding: 40rpx;
+  transform: translate(-50%, -50%);
+}
+.settings-panel-side.visible {
+  display: block;
+}
+
+.settings-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.settings-mask.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settings-tabs {
+  display: flex;
+  border-bottom: 1rpx solid #eee;
+  margin-bottom: 30rpx;
+}
+.settings-tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #666;
+}
+.settings-tab-item.active {
+  color: #007aff;
+  font-weight: bold;
+  border-bottom: 2rpx solid #007aff;
+}
+
+.settings-content {
+  max-height: 60vh;
+}
+
+.settings-placeholder {
+  text-align: center;
+  padding: 60rpx 0;
+  color: #999;
+  font-size: 26rpx;
+}
+
+.color-options-grid {
+  display: flex;
+  gap: 20rpx;
+  flex-wrap: wrap;
+}
+.color-circle-wrapper {
+  padding: 10rpx;
+}
+.icon-align {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  color: #666;
+  width: 50rpx;
+  height: 50rpx;
+  background: #f0f0f0;
+  border-radius: 8rpx;
+}
+
+.align-btn-text {
+  font-size: 22rpx;
+  color: #666;
+  padding: 10rpx 15rpx;
+  background: #f0f0f0;
+  border-radius: 8rpx;
+  text-align: center;
+}
+.align-btn-text.active {
+  background: #007aff;
+  color: #fff;
+}
+
 .setting-group { margin-bottom: 40rpx; }
 .setting-title { font-size: 32rpx; font-weight: bold; margin-bottom: 20rpx; color: #333; }
 .setting-item { margin-bottom: 20rpx; }
@@ -277,44 +382,58 @@
   padding-right: 50rpx !important;
 }
 
-.settings-panel-landscape {
-  width: 60vw;
-  left: 50%;
-  transform: translateX(-50%);
-  border-top-left-radius: 20rpx;
-  border-top-right-radius: 20rpx;
-  max-height: 85vh;
-  padding: 10px; /* Reduced from 40rpx (20px) */
-}
-
-.settings-panel-landscape .setting-group {
+.settings-panel-side .setting-group {
   margin-bottom: 10px; /* Reduced from 20rpx (10px) */
 }
-.settings-panel-landscape .setting-title {
+.settings-panel-side .setting-title {
   font-size: 16px;
   margin-bottom: 8px; /* Reduced from 15rpx (7.5px) */
 }
-.settings-panel-landscape .setting-item { /* Added for compactness */
+.settings-panel-side .setting-item { /* Added for compactness */
   margin-bottom: 8px; /* Original was 20rpx (10px) */
 }
-.settings-panel-landscape .setting-item text {
+.settings-panel-side .setting-item text {
   font-size: 13px;
 }
-.settings-panel-landscape .align-btn {
+.settings-panel-side .align-btn {
   font-size: 13px;
 }
-.settings-panel-landscape .align-options { /* Added for compactness */
+.settings-panel-side .align-options { /* Added for compactness */
   margin-top: 5px; /* Original was 10rpx (5px) */
 }
-.settings-panel-landscape .color-row { /* Added for compactness */
+.settings-panel-side .color-row { /* Added for compactness */
   margin-bottom: 8px; /* Original was 20rpx (10px) */
 }
-.settings-panel-landscape .color-row text {
+.settings-panel-side .color-row text {
   font-size: 14px;
 }
-.settings-panel-landscape .color-circle {
+.settings-panel-side .setting-circle {
   width: 30px;
   height: 30px;
+}
+
+.settings-panel-side .settings-content {
+  max-height: 60vh;
+}
+
+.settings-panel-side .settings-tabs {
+  margin-bottom: 15px;
+}
+.settings-panel-side .settings-tabs .settings-tab-item {
+  padding: 10px 0;
+  font-size: 13px;
+}
+
+.settings-panel-side .settings-placeholder {
+  padding: 30px 0;
+  font-size: 13px;
+}
+
+.settings-panel-side .color-options-grid {
+  gap: 10px;
+}
+.settings-panel-side .color-circle-wrapper {
+  padding: 5px;
 }
 
 .focus-line-container-landscape .focus-arrow {
