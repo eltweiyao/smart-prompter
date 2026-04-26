@@ -1,3 +1,5 @@
+const { STORAGE_KEYS, processContent } = require('../../utils/helpers.js');
+
 Page({
   data: {
     id: null,
@@ -14,7 +16,7 @@ Page({
     }
   },
   loadScript: function(id) {
-    const scripts = wx.getStorageSync('scripts') || [];
+    const scripts = wx.getStorageSync(STORAGE_KEYS.SCRIPTS) || [];
     const script = scripts.find(s => s.id === id);
     if (script) {
       this.setData({
@@ -35,12 +37,11 @@ Page({
       return;
     }
 
-    let scripts = wx.getStorageSync('scripts') || [];
+    let scripts = wx.getStorageSync(STORAGE_KEYS.SCRIPTS) || [];
     const now = new Date();
     const timeString = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
 
     if (this.data.id) {
-      // Update
       const index = scripts.findIndex(s => s.id === this.data.id);
       if (index > -1) {
         scripts[index].title = this.data.title;
@@ -48,7 +49,6 @@ Page({
         scripts[index].updatedAt = timeString;
       }
     } else {
-      // Create
       scripts.push({
         id: Date.now().toString(),
         title: this.data.title,
@@ -57,25 +57,17 @@ Page({
       });
     }
 
-    wx.setStorageSync('scripts', scripts);
+    wx.setStorageSync(STORAGE_KEYS.SCRIPTS, scripts);
     wx.navigateBack();
   },
 
   processContent: function() {
-    let content = this.data.content;
+    const content = processContent(this.data.content);
     if (!content) {
       wx.showToast({ title: '内容不能为空', icon: 'none' });
       return;
     }
-
-    // Replace all newlines with a single space
-    content = content.replace(/[\n\r]+/g, '');
-    // Replace multiple spaces with a single space
-    content = content.replace(/\s+/g, '');
-    // Trim leading/trailing spaces
-    content = content.trim();
-
-    this.setData({ content: content });
+    this.setData({ content });
   },
 
   clearContent: function() {

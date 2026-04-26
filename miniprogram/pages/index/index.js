@@ -1,12 +1,13 @@
 const app = getApp();
+const { STORAGE_KEYS, CONFIG, formatDate, processContent } = require('../../utils/helpers.js');
 
 Page({
   data: {
     content: '',
-    orientation: 'auto', // 'auto', 'portrait', 'landscape'
+    orientation: 'auto',
     isRecording: false,
     recentScripts: [],
-    inputHeight: 400 // Initial height in rpx
+    inputHeight: 400
   },
 
   onShow: function() {
@@ -16,8 +17,8 @@ Page({
   adjustInputHeight: function(e) {
     const delta = parseInt(e.currentTarget.dataset.delta);
     let newHeight = this.data.inputHeight + delta;
-    if (newHeight < 200) newHeight = 200; // Min height
-    if (newHeight > 1200) newHeight = 1200; // Max height
+    if (newHeight < 200) newHeight = 200;
+    if (newHeight > 1200) newHeight = 1200;
     this.setData({ inputHeight: newHeight });
   },
 
@@ -26,20 +27,12 @@ Page({
   },
 
   processContent: function() {
-    let content = this.data.content;
+    const content = processContent(this.data.content);
     if (!content) {
       wx.showToast({ title: '内容不能为空', icon: 'none' });
       return;
     }
-
-    // Replace all newlines with a single space
-    content = content.replace(/[\n\r]+/g, '');
-    // Replace multiple spaces with a single space
-    content = content.replace(/\s+/g, '');
-    // Trim leading/trailing spaces
-    content = content.trim();
-
-    this.setData({ content: content });
+    this.setData({ content });
   },
 
   clearContent: function() {
@@ -54,52 +47,36 @@ Page({
     this.setData({ isRecording: !this.data.isRecording });
   },
 
-  loadHistory: function() {
-    let history = wx.getStorageSync('script_history') || [];
-    // Format time for display
-    history.forEach(item => {
-      const date = new Date(item.timestamp);
-      item.displayTime = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-    });
-    this.setData({ recentScripts: history });
+  loadHistory: function(e) {
+    if (e && e.currentTarget && e.currentTarget.dataset.item) {
+      const item = e.currentTarget.dataset.item;
+      this.setData({ content: item.content });
+      wx.vibrateShort();
+    } else {
+      let history = wx.getStorageSync(STORAGE_KEYS.HISTORY) || [];
+      history.forEach(item => {
+        item.displayTime = formatDate(item.timestamp);
+      });
+      this.setData({ recentScripts: history });
+    }
   },
 
   addToHistory: function(content) {
-    let history = wx.getStorageSync('script_history') || [];
-    // Remove duplicates of exact same content to keep list fresh
+    let history = wx.getStorageSync(STORAGE_KEYS.HISTORY) || [];
     history = history.filter(h => h.content !== content);
-    
-    // Add new to top
+
     history.unshift({
       id: Date.now(),
       content: content,
       timestamp: Date.now()
     });
 
-    // Keep only last 10
-    if (history.length > 10) {
-      history = history.slice(0, 10);
+    if (history.length > CONFIG.MAX_HISTORY_COUNT) {
+      history = history.slice(0, CONFIG.MAX_HISTORY_COUNT);
     }
-    
-    wx.setStorageSync('script_history', history);
-    this.loadHistory();
-  },
 
-  loadHistory: function(e) {
-    // Determine if called from event or manually
-    if (e && e.currentTarget && e.currentTarget.dataset.item) {
-      const item = e.currentTarget.dataset.item;
-      this.setData({ content: item.content });
-      wx.vibrateShort(); // Feedback
-    } else {
-      // Internal load
-      let history = wx.getStorageSync('script_history') || [];
-      history.forEach(item => {
-        const date = new Date(item.timestamp);
-        item.displayTime = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-      });
-      this.setData({ recentScripts: history });
-    }
+    wx.setStorageSync(STORAGE_KEYS.HISTORY, history);
+    this.loadHistory();
   },
 
   startPrompter: function() {
@@ -108,11 +85,8 @@ Page({
       return;
     }
 
-    // Save to history
     this.addToHistory(this.data.content);
 
-    // Navigate with params
-    // We encode component to handle special chars/newlines
     const contentEncoded = encodeURIComponent(this.data.content);
     wx.navigateTo({
       url: `/pages/prompter/prompter?content=${contentEncoded}&orientation=${this.data.orientation}&isRecording=${this.data.isRecording}`

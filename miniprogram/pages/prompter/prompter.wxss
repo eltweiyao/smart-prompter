@@ -14,29 +14,25 @@
   left: 0;
   width: 100%;
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-start; /* Align everything from left */
   align-items: center;
   padding: 5px 10px; 
-  z-index: 110;
+  z-index: 20;
   transition: opacity 0.3s;
   min-height: 40px;
   box-sizing: border-box;
 }
-.header-landscape {
-  padding-left: 50rpx !important;
-  padding-right: 50rpx !important;
-}
 
 .left-group {
   display: flex;
-  gap: 15px;
+  gap: 10px;
   margin-right: 15px;
 }
 
 .icon-btn {
-  background: rgba(100,100,100,0.5);
-  width: 36px;
-  height: 36px;
+  background: rgba(100,100,100,0.3);
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -52,7 +48,7 @@
 }
 
 .right-placeholder {
-  flex: 1;
+  flex: 1; /* Pushes content but respects capsule button area */
 }
 .mode-item {
   padding: 5px 15px;
@@ -72,19 +68,22 @@
   overflow: hidden;
   position: relative;
   z-index: 10;
+  /* Capture touches */
 }
 
 .prompter-content {
   width: 100%;
+  /* Hardware acceleration hint */
   will-change: transform;
 }
 
 .text-content {
   width: 100%;
-  padding: 0 20px;
+  padding: 0 40rpx;
   box-sizing: border-box;
 }
 
+/* Padding space is now handled via inline styles for dynamic sizing */
 .padding-space {
   /* height set by inline style */
 }
@@ -92,6 +91,7 @@
 /* Focus Line Indicator */
 .focus-line-container {
   position: absolute;
+  /* top set by inline style */
   left: 0;
   width: 100%;
   height: 4rpx;
@@ -113,29 +113,23 @@
   height: 4rpx;
   background: #007aff;
 }
-.focus-line-container-landscape .focus-arrow {
-  font-size: 20px;
-}
-.focus-line-container-landscape .focus-line {
-  height: 2px;
-}
 
 
 .ai-feedback-fixed {
   position: absolute;
-  bottom: 30rpx;
+  bottom: 30rpx; /* Moved down */
   left: 50%;
   transform: translateX(-50%);
   z-index: 45;
   animation: pulse 2s infinite;
 }
 .ai-status {
-  font-size: 13px;
+  font-size: 26rpx;
   color: #007aff;
   background: rgba(0,122,255,0.15);
   backdrop-filter: blur(4px);
-  padding: 6px 15px;
-  border-radius: 20px;
+  padding: 12rpx 30rpx;
+  border-radius: 40rpx;
   border: 1px solid rgba(0,122,255,0.3);
   white-space: nowrap;
 }
@@ -155,7 +149,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  pointer-events: auto;
+  pointer-events: auto; /* Ensure clickable */
 }
 
 .btn-play-round {
@@ -178,7 +172,7 @@
 }
 
 .btn-play-ai {
-  background: rgba(88, 86, 214, 0.6);
+  background: rgba(88, 86, 214, 0.6); /* Purple tint for AI */
   border-color: rgba(255, 255, 255, 0.9);
 }
 .btn-play-ai:active {
@@ -191,85 +185,38 @@
   border-top: 12px solid transparent;
   border-bottom: 12px solid transparent;
   border-left: 20px solid #fff;
-  margin-left: 5px;
+  margin-left: 5px; /* Visual center adjustment */
 }
 
-/* --- New Settings Panel --- */
-
-/* Mask for background dimming */
-.settings-mask {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 99;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s, visibility 0.3s;
-  pointer-events: none;
-}
-.settings-mask.visible {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-/* Base Settings Panel */
+/* Settings Panel */
 .settings-panel {
-  position: fixed;
-  background: rgba(247, 247, 247, 0.98);
-  backdrop-filter: blur(10px);
-  z-index: 100;
-  box-shadow: 0 0 40rpx rgba(0,0,0,0.2);
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s;
-  visibility: hidden;
-}
-
-.settings-panel.visible {
-  visibility: visible;
-  transform: translate(0, 0);
-}
-
-/* PORTRAIT: Bottom Sheet */
-.settings-panel-bottom {
+  position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  max-height: 70vh;
+  background: #fff;
+  z-index: 100;
   border-top-left-radius: 30rpx;
   border-top-right-radius: 30rpx;
-  padding: 20rpx 0;
-  transform: translateY(100%);
-}
-
-/* LANDSCAPE: Side Drawer */
-.settings-panel-side {
-  top: 0;
-  right: 0;
-  width: 350px;
-  max-width: 80vw;
-  height: 100%;
-  border-top-left-radius: 30rpx;
-  border-bottom-left-radius: 30rpx;
-  padding: 40rpx 0;
-  transform: translateX(100%);
+  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.1);
+  box-sizing: border-box;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-tabs {
   display: flex;
-  justify-content: space-around;
-  padding: 0 15px;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #e5e5e5;
+  padding: 0 30rpx;
+  border-bottom: 1px solid #eee;
   flex-shrink: 0;
 }
 .settings-tab-item {
-  padding: 10px 5px;
-  font-size: 14px;
-  color: #888;
-  position: relative;
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 28rpx;
+  color: #666;
 }
 .settings-tab-item.active {
   color: #007aff;
@@ -277,137 +224,48 @@
 }
 .settings-tab-item.active::after {
   content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  display: block;
   width: 40%;
-  height: 3px;
-  background-color: #007aff;
-  border-radius: 2px;
+  height: 4rpx;
+  background: #007aff;
+  margin: 10rpx auto 0;
+  border-radius: 2rpx;
 }
 
 .settings-content {
-  padding: 0 15px;
   flex: 1;
-  overflow-y: auto;
-  min-height: 0; /* Important for nested flex scrolling */
+  padding: 30rpx;
+  min-height: 0;
 }
 
-.setting-group { margin-bottom: 20px; }
-.setting-title { 
-  font-size: 14px;
-  font-weight: bold; 
-  margin-bottom: 10px; 
-  color: #333; 
-}
-.setting-item { margin-bottom: 15px; }
-.setting-item text { 
-  display: block;
-  color: #666; 
-  font-size: 13px; 
-  margin-bottom: 5px;
-}
+.setting-item { margin-bottom: 30rpx; }
+.setting-item text { display: block; color: #666; font-size: 26rpx; margin-bottom: 10rpx; }
 .switch-item { display: flex; justify-content: space-between; align-items: center; }
 .switch-item text { margin-bottom: 0; }
 
-slider {
-  margin: 0;
-}
+.color-options-grid { display: flex; gap: 20rpx; flex-wrap: wrap; }
+.color-circle-wrapper { width: 60rpx; height: 60rpx; }
+.color-circle { width: 100%; height: 100%; border-radius: 50%; box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.2); }
 
-/* Color Grid */
-.color-options-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-  gap: 15px;
-}
-.color-circle-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.color-circle { 
-  width: 36px;
-  height: 36px;
-  border-radius: 50%; 
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.15); 
-  transition: transform 0.2s;
-}
-.color-circle:active {
-  transform: scale(0.9);
-}
+.align-options { display: flex; gap: 15rpx; margin-top: 10rpx; }
+.align-btn { flex: 1; text-align: center; padding: 15rpx 0; background: #f0f0f0; border-radius: 10rpx; font-size: 26rpx; color: #666; }
+.align-btn.active { background: #007aff; color: #fff; }
 
-/* Alignment Buttons */
-.align-options {
-  display: flex;
-  gap: 10px;
-  margin-top: 10rpx;
-}
-.align-btn {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 40px;
-  background: #ebebeb;
-  border-radius: 5px;
-  transition: background-color 0.2s;
-}
-.align-btn.active {
-  background: #007aff;
-}
-.align-btn.active .icon-align {
-  background: #fff;
-}
-
-.icon-align {
-  display: block;
-  width: 20px;
-  height: 14px;
-  position: relative;
-}
-.icon-align::before, .icon-align::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  height: 2px;
-  background: #555;
-  border-radius: 1px;
-}
-.icon-align-left::before { top: 0; width: 100%; }
-.icon-align-left::after { top: 6px; width: 60%; }
-.icon-align-center::before { top: 0; width: 100%; }
-.icon-align-center::after { top: 6px; width: 100%; }
-.icon-align-right::before { top: 0; width: 100%; }
-.icon-align-right::after { top: 6px; width: 60%; right: 0; left: auto; }
-
-.btn-close-settings { 
-  background: #007aff; 
-  color: #fff; 
-  margin: 15px 15px 15px 15px;
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-.settings-placeholder {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100px;
-  color: #999;
-  font-size: 14px;
-  text-align: center;
-}
+.btn-close-settings { background: #007aff; color: #fff; margin: 20rpx 30rpx; border-radius: 16rpx; font-size: 30rpx; }
+.settings-placeholder { text-align: center; color: #999; padding: 60rpx 0; }
 
 /* Focus Masks */
 .focus-mask-top, .focus-mask-bottom {
   position: absolute;
   left: 0;
   width: 100%;
-  z-index: 15;
+  z-index: 15; /* Above text, below header/controls */
   pointer-events: none;
 }
-.focus-mask-top { top: 0; }
+.focus-mask-top {
+  top: 0;
+}
+/* Bottom mask top position is set via inline style */
 
 /* Countdown Overlay */
 .countdown-overlay {
@@ -421,10 +279,10 @@ slider {
   background: rgba(0,0,0,0.3);
 }
 .countdown-text {
-  font-size: 80px;
+  font-size: 160rpx;
   font-weight: bold;
   color: #fff;
-  text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  text-shadow: 0 4rpx 10rpx rgba(0,0,0,0.5);
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -433,7 +291,47 @@ slider {
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* Camera and Recording */
+/* Landscape-specific adjustments */
+.header-landscape {
+  padding-left: 50rpx !important;
+  padding-right: 50rpx !important;
+}
+
+.settings-panel-landscape {
+  width: 60vw;
+  left: 50%;
+  bottom: auto;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 85vh;
+}
+
+.settings-panel-landscape .settings-tabs {
+  padding: 0 20rpx;
+}
+.settings-panel-landscape .settings-tab-item {
+  padding: 20rpx 0;
+  font-size: 26rpx;
+}
+.settings-panel-landscape .settings-content {
+  padding: 20rpx;
+}
+.settings-panel-landscape .setting-item {
+  margin-bottom: 20rpx;
+}
+.settings-panel-landscape .setting-item text {
+  font-size: 24rpx;
+}
+
+.focus-line-container-landscape .focus-arrow {
+  font-size: 20px;
+}
+.focus-line-container-landscape .focus-line {
+  height: 2px;
+}
+
+
+/* --- New Styles for Recording --- */
 .page-wrapper {
   width: 100vw;
   height: 100vh;
@@ -447,16 +345,17 @@ slider {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
+  z-index: 1; /* Behind prompter content */
 }
 
 .container-prompter {
-  z-index: 2;
+  z-index: 2; /* In front of camera */
 }
+
 
 .record-controls {
   position: absolute;
-  bottom: 110rpx;
+  bottom: 110rpx; /* Moved down slightly */
   left: 0;
   width: 100%;
   padding: 50rpx 100rpx;
@@ -464,7 +363,7 @@ slider {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 30;
+  z-index: 30; /* Above text, below settings */
 }
 .record-controls-landscape {
   left: auto;
@@ -505,6 +404,7 @@ slider {
   transform: rotate(90deg);
 }
 
+
 .rc-record-btn {
   width: 120rpx;
   height: 120rpx;
@@ -516,6 +416,7 @@ slider {
 .rc-record-btn.recording {
   background-color: transparent;
 }
+/* Inner square/pause bars for state change */
 .rc-record-btn.recording::before {
   content: '';
   display: block;
@@ -536,9 +437,10 @@ slider {
   margin: 30rpx auto;
 }
 
+
 .rc-switch-camera {
-  width: 100rpx;
-  height: 100rpx;
+  width: 100rpx; /* Increased size */
+  height: 100rpx; /* Increased size */
   border-radius: 50%;
   background: rgba(100, 100, 100, 0.4);
   backdrop-filter: blur(5px);
@@ -551,84 +453,7 @@ slider {
 }
 
 .rc-switch-icon-img {
-  width: 50rpx;
-  height: 50rpx;
+  width: 50rpx; /* Increased size */
+  height: 50rpx; /* Increased size */
 }
 
-/* --- Guide Overlay --- */
-.guide-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 200;
-  pointer-events: auto;
-}
-
-.guide-mask {
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.75);
-}
-
-.guide-step {
-  position: absolute;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.guide-text {
-  font-size: 16px;
-  font-weight: bold;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 8px 12px;
-  border-radius: 8px;
-  backdrop-filter: blur(4px);
-  margin-bottom: 5px;
-}
-
-.guide-arrow {
-  font-size: 30px;
-  color: #fff;
-  font-weight: bold;
-  text-shadow: 0 0 10px rgba(0,0,0,0.5);
-}
-
-/* Positioning steps relative to the UI elements */
-.step-mode {
-  top: 100px; /* Below the header */
-  left: 160px; /* Align with Mode Switch (approx) */
-  transform: translateX(-50%);
-}
-
-.step-settings {
-  top: 100px;
-  left: 79px; /* Align with Settings Icon center */
-  transform: translateX(-50%);
-}
-.guide-arrow.arrow-top-left {
-  /* Removed: using standard arrow-top for settings too */
-}
-
-.step-play {
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -130%); /* Above the play button */
-}
-
-.btn-guide-confirm {
-  position: absolute;
-  bottom: 20%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 1px solid #fff;
-  color: #fff;
-  background: transparent;
-  padding: 10px 40px;
-  border-radius: 30px;
-  font-size: 18px;
-  z-index: 201;
-}
-.btn-guide-confirm:active {
-  background: rgba(255,255,255,0.2);
-}
