@@ -89,79 +89,73 @@
 
   <!-- Settings Panel -->
   <view class="settings-panel {{isLandscape ? 'settings-panel-landscape' : ''}}" wx:if="{{showSettings}}">
-    <view class="settings-tabs">
-      <view class="settings-tab-item {{activeSettingsTab === 'display' ? 'active' : ''}}" bindtap="switchSettingsTab" data-tab="display">显示</view>
-      <view class="settings-tab-item {{activeSettingsTab === 'scroll' ? 'active' : ''}}" bindtap="switchSettingsTab" data-tab="scroll">滚动</view>
-      <view class="settings-tab-item {{activeSettingsTab === 'color' ? 'active' : ''}}" bindtap="switchSettingsTab" data-tab="color">颜色</view>
-    </view>
-    <scroll-view scroll-y="true" class="settings-content">
-      <view wx:if="{{activeSettingsTab === 'display'}}">
+    <scroll-view scroll-y="true" style="max-height: 60vh;">
+      <view class="setting-group">
+        <view class="setting-title">显示设置</view>
         <view class="setting-item">
           <text>字号 ({{fontSize}}px)</text>
-          <slider min="20" max="80" value="{{fontSize}}" bindchange="onFontSizeChange" block-size="20"/>
+          <slider min="20" max="80" value="{{fontSize}}" bindchange="onFontSizeChange" />
         </view>
         <view class="setting-item">
           <text>行间距 ({{lineHeight}})</text>
-          <slider min="1.0" max="3.0" step="0.1" value="{{lineHeight}}" bindchange="onLineHeightChange" block-size="20"/>
+          <slider min="1.0" max="3.0" step="0.1" value="{{lineHeight}}" bindchange="onLineHeightChange" />
         </view>
         <view class="setting-item">
           <text>字间距 ({{letterSpacing}}px)</text>
-          <slider min="0" max="10" step="1" value="{{letterSpacing}}" bindchange="onLetterSpacingChange" block-size="20"/>
+          <slider min="0" max="10" step="1" value="{{letterSpacing}}" bindchange="onLetterSpacingChange" />
         </view>
         <view class="setting-item">
-          <text>对齐</text>
+          <text>对齐方式</text>
           <view class="align-options">
-            <view class="align-btn {{textAlign === 'left' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="left">左</view>
-            <view class="align-btn {{textAlign === 'center' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="center">中</view>
-            <view class="align-btn {{textAlign === 'right' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="right">右</view>
+            <view class="align-btn {{textAlign === 'left' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="left">左对齐</view>
+            <view class="align-btn {{textAlign === 'center' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="center">居中</view>
+            <view class="align-btn {{textAlign === 'right' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="right">右对齐</view>
           </view>
         </view>
-        <view class="setting-item">
-          <text>基准线 ({{baselinePercent}}%)</text>
-          <slider min="20" max="80" step="5" value="{{baselinePercent}}" bindchange="onBaselineChange" block-size="20"/>
+         <view class="setting-item">
+          <text>基准线位置 ({{baselinePercent}}%)</text>
+          <slider min="20" max="80" step="5" value="{{baselinePercent}}" bindchange="onBaselineChange" />
         </view>
-        <view class="setting-item switch-item">
-          <text>聚焦模式</text>
+         <view class="setting-item switch-item">
+          <text>台本聚焦模式</text>
           <switch checked="{{focusEnabled}}" bindchange="onFocusToggle" />
         </view>
       </view>
 
-      <view wx:if="{{activeSettingsTab === 'scroll'}}">
-        <block wx:if="{{mode === 'basic'}}">
-          <view class="setting-item">
-            <text>倒计时 ({{countdownDuration}}秒)</text>
-            <slider min="0" max="10" value="{{countdownDuration}}" bindchange="onCountdownDurationChange" block-size="20"/>
-          </view>
-          <view class="setting-item">
-            <text>每分钟字数 ({{wordsPerMinute}})</text>
-            <slider min="60" max="400" value="{{wordsPerMinute}}" bindchange="onWpmChange" block-size="20"/>
-          </view>
-        </block>
-        <view wx:else class="settings-placeholder">仅基础模式可用</view>
-      </view>
-
-      <view wx:if="{{activeSettingsTab === 'color'}}">
+      <view class="setting-group" wx:if="{{mode === 'basic'}}">
+        <view class="setting-title">滚动设置</view>
         <view class="setting-item">
-          <text>文字颜色</text>
-          <view class="color-options-grid">
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#ffffff"><view class="color-circle" style="background:#fff; border: 1px solid #ddd;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#000000"><view class="color-circle" style="background:#000;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#ffd700"><view class="color-circle" style="background:#ffd700;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#1e90ff"><view class="color-circle" style="background:#1e90ff;"></view></view>
-          </view>
+          <text>开始倒计时 ({{countdownDuration}}秒)</text>
+          <slider min="0" max="10" value="{{countdownDuration}}" bindchange="onCountdownDurationChange" />
         </view>
         <view class="setting-item">
-          <text>背景颜色</text>
-          <view class="color-options-grid">
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#000000"><view class="color-circle" style="background:#000;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#ffffff"><view class="color-circle" style="background:#fff; border: 1px solid #ddd;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#00b140"><view class="color-circle" style="background:#00b140;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#191970"><view class="color-circle" style="background:#191970;"></view></view>
+          <text>滚动速度 ({{speed}})</text>
+          <slider min="1" max="20" value="{{speed}}" bindchange="onSpeedChange" />
+        </view>
+      </view>
+
+      <view class="setting-group">
+        <view class="setting-title">颜色设置</view>
+        <view class="color-row">
+          <text>文字：</text>
+          <view class="color-options">
+            <view class="color-circle" style="background:white" bindtap="setFontColor" data-color="#ffffff"></view>
+            <view class="color-circle" style="background:black" bindtap="setFontColor" data-color="#000000"></view>
+            <view class="color-circle" style="background:#ffd700" bindtap="setFontColor" data-color="#ffd700"></view>
+          </view>
+        </view>
+        <view class="color-row">
+          <text>背景：</text>
+          <view class="color-options">
+            <view class="color-circle" style="background:black; border: 1px solid #333;" bindtap="setBgColor" data-color="#000000"></view>
+            <view class="color-circle" style="background:white; border: 1px solid #ccc;" bindtap="setBgColor" data-color="#ffffff"></view>
+            <view class="color-circle" style="background:#00b140" bindtap="setBgColor" data-color="#00b140"></view>
           </view>
         </view>
       </view>
     </scroll-view>
-    <button class="btn-close-settings" bindtap="toggleSettings">完成</button>
+
+    <button class="btn-close-settings" bindtap="toggleSettings">关闭</button>
   </view>
 </view>
 
