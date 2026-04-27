@@ -1,4 +1,3 @@
-const app = getApp();
 const { STORAGE_KEYS, CONFIG, formatDate, processContent } = require('../../utils/helpers.js');
 
 Page({
@@ -79,6 +78,15 @@ Page({
     this.loadHistory();
   },
 
+  deleteHistory: function(e) {
+    const id = String(e.currentTarget.dataset.id);
+    const history = (wx.getStorageSync(STORAGE_KEYS.HISTORY) || [])
+      .filter(item => String(item.id) !== id);
+    wx.setStorageSync(STORAGE_KEYS.HISTORY, history);
+    this.loadHistory();
+    wx.showToast({ title: '已删除', icon: 'none' });
+  },
+
   startPrompter: function() {
     if (!this.data.content.trim()) {
       wx.showToast({ title: '请输入台本内容', icon: 'none' });
@@ -87,9 +95,14 @@ Page({
 
     this.addToHistory(this.data.content);
 
-    const contentEncoded = encodeURIComponent(this.data.content);
+    const tempScriptKey = `${STORAGE_KEYS.TEMP_SCRIPT}_${Date.now()}`;
+    wx.setStorageSync(tempScriptKey, this.data.content);
     wx.navigateTo({
-      url: `/pages/prompter/prompter?content=${contentEncoded}&orientation=${this.data.orientation}&isRecording=${this.data.isRecording}`
+      url: `/pages/prompter/prompter?tempScriptKey=${tempScriptKey}&orientation=${this.data.orientation}&isRecording=${this.data.isRecording}`,
+      fail: () => {
+        wx.removeStorageSync(tempScriptKey);
+        wx.showToast({ title: '打开提词页失败', icon: 'none' });
+      }
     });
   },
 
@@ -104,14 +117,14 @@ Page({
 
   onShareAppMessage: function () {
     return {
-      title: '智能题词器',
+      title: '随声提词',
       path: '/pages/index/index'
     }
   },
 
   onShareTimeline: function () {
     return {
-      title: '智能题词器'
+      title: '随声提词'
     }
   }
 })

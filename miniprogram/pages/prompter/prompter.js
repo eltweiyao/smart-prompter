@@ -33,6 +33,9 @@ Page({
     activeSettingsTab: 'display',
     cameraStyle: '',
     showGuide: false,
+    smartStatusText: '',
+    smartStatusType: 'idle',
+    isDragging: false,
   },
 
   contentHeight: 0,
@@ -42,8 +45,15 @@ Page({
   uiHideTimer: null,
   lastRecognizedLength: 0,
   cameraContext: null,
+  layoutTimer: null,
+  resizeMeasureTimer: null,
+  recognitionRestartTimer: null,
+  orientationTimer: null,
+  tempScriptKey: '',
+  isUnloaded: false,
 
   closeGuide: function() {
+    wx.setStorageSync(STORAGE_KEYS.GUIDE_SEEN, true);
     this.setData({ showGuide: false });
   },
 
@@ -52,6 +62,7 @@ Page({
   },
 
   onLoad: function(options) {
+    this.isUnloaded = false;
     const sysInfo = wx.getSystemInfoSync();
     this.setData({
       statusBarHeight: sysInfo.statusBarHeight,
@@ -62,7 +73,11 @@ Page({
     this.loadSettings();
     this.updateStatusBarColor(this.data.bgColor);
 
-    if (options.content) {
+    if (options.tempScriptKey) {
+      this.tempScriptKey = options.tempScriptKey;
+      const content = wx.getStorageSync(options.tempScriptKey);
+      this.setData({ content: content || '' });
+    } else if (options.content) {
       const content = decodeURIComponent(options.content);
       this.setData({ content: content });
     } else if (options.id) {
@@ -70,7 +85,9 @@ Page({
     }
 
     if (options.orientation) {
-      setTimeout(() => {
+      this.orientationTimer = setTimeout(() => {
+        this.orientationTimer = null;
+        if (this.isUnloaded) return;
         if (options.orientation === 'auto') {
            wx.setPageOrientation({ orientation: 'auto' });
         } else {
@@ -80,8 +97,11 @@ Page({
     }
 
     if (options.isRecording === 'true') {
-      this.setData({ isRecording: true, bgColor: 'transparent' });
+      this.setData({ isRecording: true, recordMode: true });
       this.initCamera();
+    }
+    if (!wx.getStorageSync(STORAGE_KEYS.GUIDE_SEEN)) {
+      this.setData({ showGuide: true });
     }
     wx.setKeepScreenOn({ keepScreenOn: true });
   },
@@ -92,6 +112,7 @@ Page({
     // 监听窗口大小变化（横竖屏切换）
     const that = this;
     this.resizeHandler = function() {
+      if (that.isUnloaded) return;
       const sysInfo = wx.getSystemInfoSync();
       that.setData({
         isLandscape: sysInfo.windowWidth > sysInfo.windowHeight
@@ -122,13 +143,13 @@ Page({
                 },
                 fail: () => {
                   wx.showToast({ title: '录像功能需要授权', icon: 'none' });
-                  this.setData({ isRecording: false, bgColor: '#000000' });
+                  this.setData({ isRecording: false, recordMode: false });
                 }
               })
             },
             fail: () => {
               wx.showToast({ title: '相机功能需要授权', icon: 'none' });
-              this.setData({ isRecording: false, bgColor: '#000000' });
+              this.setData({ isRecording: false, recordMode: false });
             }
           })
         } else {
@@ -139,9 +160,31 @@ Page({
   },
 
   onUnload: function() {
+    this.isUnloaded = true;
     this.stopAll();
-    if (this.data.isRecording) {
+    if (this.data.recordStatus === 'recording') {
       this.stopRecordAndSave();
+    }
+    if (this.resizeHandler && wx.offWindowResize) {
+      wx.offWindowResize(this.resizeHandler);
+      this.resizeHandler = null;
+    }
+    this.clearLayoutTimer();
+    if (this.resizeMeasureTimer) {
+      clearTimeout(this.resizeMeasureTimer);
+      this.resizeMeasureTimer = null;
+    }
+    if (this.recognitionRestartTimer) {
+      clearTimeout(this.recognitionRestartTimer);
+      this.recognitionRestartTimer = null;
+    }
+    if (this.orientationTimer) {
+      clearTimeout(this.orientationTimer);
+      this.orientationTimer = null;
+    }
+    if (this.tempScriptKey) {
+      wx.removeStorageSync(this.tempScriptKey);
+      this.tempScriptKey = '';
     }
     this.cancelUiAutoHide();
     wx.setPageOrientation({ orientation: 'portrait' });
@@ -153,28 +196,46 @@ Page({
       clearTimeout(this.uiHideTimer);
       this.uiHideTimer = null;
     }
-    if (this.data.uiHidden) {
+    if (!this.isUnloaded && this.data.uiHidden) {
       this.setData({ uiHidden: false });
     }
   },
 
   onResize: function(res) {
+    if (this.isUnloaded) return;
     const sysInfo = wx.getSystemInfoSync();
     this.setData({
       statusBarHeight: sysInfo.statusBarHeight,
       isLandscape: sysInfo.windowWidth > sysInfo.windowHeight
     });
-    setTimeout(() => {
+    if (this.resizeMeasureTimer) {
+      clearTimeout(this.resizeMeasureTimer);
+    }
+    this.resizeMeasureTimer = setTimeout(() => {
+      this.resizeMeasureTimer = null;
+      if (this.isUnloaded) return;
       this.measureLayout();
     }, 300);
   },
 
   initLayoutLoop: function() {
+    this.clearLayoutTimer();
     this.measureLayout((layout) => {
+      if (this.isUnloaded) return;
       if (!layout || layout.contentHeight <= 0) {
-        setTimeout(() => this.initLayoutLoop(), 500);
+        this.layoutTimer = setTimeout(() => {
+          this.layoutTimer = null;
+          this.initLayoutLoop();
+        }, 500);
       }
     });
+  },
+
+  clearLayoutTimer: function() {
+    if (this.layoutTimer) {
+      clearTimeout(this.layoutTimer);
+      this.layoutTimer = null;
+    }
   },
 
   measureLayout: function(callback) {
@@ -190,6 +251,22 @@ Page({
         callback(null);
       }
     });
+  },
+
+  getSmartFollowOffset: function(progress) {
+    const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
+    const rawDistance = Math.max(0, this.contentHeight * progress);
+    const predictedDistance = rawDistance + lineHeightPx * 0.25;
+    const snappedDistance = Math.floor(predictedDistance / lineHeightPx) * lineHeightPx + lineHeightPx;
+    const maxDistance = Math.max(0, this.contentHeight - lineHeightPx);
+    return -Math.min(snappedDistance, maxDistance);
+  },
+
+  updateSmartFollowOffset: function(progress) {
+    const targetOffset = this.getSmartFollowOffset(progress);
+    if (targetOffset < this.data.offsetY) {
+      this.setData({ offsetY: targetOffset });
+    }
   },
 
   loadScript: function(id) {
@@ -249,27 +326,31 @@ Page({
    * 启动智能语音跟随
    */
   startSmartFollow: function() {
-    console.log('[Prompter] startSmartFollow called');
-    console.log('[Prompter] current offsetY:', this.data.offsetY);
+    if (this.data.isRunning) return;
 
     this.measureLayout((layout) => {
+      if (this.isUnloaded || this.data.isRunning) return;
       if (!layout || layout.contentHeight <= 0) {
         wx.showToast({ title: '台本未就绪', icon: 'none' });
         return;
       }
 
-      this.setData({ isRunning: true });
+      this.setData({
+        isRunning: true,
+        smartStatusText: '聆听中',
+        smartStatusType: 'listening'
+      });
 
       // 初始化匹配器
       const currentProgress = Math.abs(this.data.offsetY) / this.contentHeight;
       const startIndex = Math.floor(this.data.content.length * currentProgress);
-      console.log('[Prompter] startSmartFollow - progress:', currentProgress, 'startIndex:', startIndex);
 
       this.matcher = new SmartMatcher(this.data.content, startIndex);
       this.lastRecognizedLength = 0;
 
       // 注册语音识别回调
       manager.onRecognize = (res) => {
+        if (this.isUnloaded) return;
         const text = res.result || '';
         const delta = text.slice(this.lastRecognizedLength);
         this.lastRecognizedLength = text.length;
@@ -277,22 +358,34 @@ Page({
         if (delta && this.matcher) {
           const progress = this.matcher.match(delta);
           if (progress !== null) {
-            this.setData({ offsetY: - (this.contentHeight * progress) });
+            this.updateSmartFollowOffset(progress);
           }
         }
       };
 
       manager.onStop = (res) => {
-        if (this.data.isRunning && this.data.mode === 'smart') {
+        if (!this.isUnloaded && this.data.isRunning && this.data.mode === 'smart') {
           this.lastRecognizedLength = 0;
+          this.setData({
+            smartStatusText: '聆听中',
+            smartStatusType: 'listening'
+          });
           manager.start({ duration: 60000, lang: "zh_CN" });
         }
       };
 
       manager.onError = (res) => {
         if (this.data.isRunning && this.data.mode === 'smart') {
-          setTimeout(() => {
-            if (this.data.isRunning) {
+          if (this.recognitionRestartTimer) {
+            clearTimeout(this.recognitionRestartTimer);
+          }
+          this.recognitionRestartTimer = setTimeout(() => {
+            this.recognitionRestartTimer = null;
+            if (!this.isUnloaded && this.data.isRunning && this.data.mode === 'smart') {
+              this.setData({
+                smartStatusText: '聆听中',
+                smartStatusType: 'listening'
+              });
               manager.start({ duration: 60000, lang: "zh_CN" });
             }
           }, 1000);
@@ -301,10 +394,10 @@ Page({
 
       // 启动定时器：每 500ms 调用一次 tick() 进行预测推进
       this.predictTimer = setInterval(() => {
-        if (this.matcher && this.data.isRunning) {
+        if (this.matcher && !this.isUnloaded && this.data.isRunning) {
           const progress = this.matcher.tick();
           if (progress !== null) {
-            this.setData({ offsetY: - (this.contentHeight * progress) });
+            this.updateSmartFollowOffset(progress);
           }
         }
       }, 500);
@@ -318,16 +411,26 @@ Page({
       clearInterval(this.countdownTimer);
       this.countdownTimer = null;
     }
-    if (this.data.mode === 'basic') {
+    if (!this.data.isRunning && this.data.countdown === 0) {
+      if (!this.isUnloaded) {
+        this.setData({ isRunning: false, countdown: 0 });
+      }
+      return;
+    }
+    if (this.data.mode === 'basic' && !this.isUnloaded) {
       this.freezeBasicScroll();
     } else {
       this.stopSmartFollow();
     }
-    this.setData({ isRunning: false, countdown: 0 });
+    if (!this.isUnloaded) {
+      this.setData({ isRunning: false, countdown: 0 });
+    }
   },
 
   freezeBasicScroll: function() {
+    if (this.isUnloaded) return;
     wx.createSelectorQuery().in(this).select('.prompter-content').fields({ computedStyle: ['transform'] }).exec((res) => {
+      if (this.isUnloaded) return;
       if (!res[0]) return;
       const matrix = res[0].transform;
       let currentY = this.data.offsetY;
@@ -340,16 +443,22 @@ Page({
   },
 
   stopSmartFollow: function() {
-    console.log('[Prompter] stopSmartFollow called');
-    console.log('[Prompter] current offsetY:', this.data.offsetY);
-    console.log('[Prompter] contentHeight:', this.contentHeight);
-
-    this.setData({ isRunning: false });
+    if (!this.isUnloaded) {
+      this.setData({
+        isRunning: false,
+        smartStatusText: '',
+        smartStatusType: 'idle'
+      });
+    }
 
     // 清除预测定时器
     if (this.predictTimer) {
       clearInterval(this.predictTimer);
       this.predictTimer = null;
+    }
+    if (this.recognitionRestartTimer) {
+      clearTimeout(this.recognitionRestartTimer);
+      this.recognitionRestartTimer = null;
     }
 
     try {
@@ -378,6 +487,7 @@ Page({
     }
     this.lastTouchY = e.touches[0].clientY;
     this.isScrolling = false;
+    this.setData({ isDragging: true });
   },
 
   onTouchMove: function(e) {
@@ -388,10 +498,11 @@ Page({
   },
 
   onTouchEnd: function() {
+    this.setData({ isDragging: false });
     if (this.wasRunning && this.data.mode === 'basic') {
       this.runBasicScrollAnimation();
-      this.wasRunning = false;
     }
+    this.wasRunning = false;
     // 手动滑动后重置匹配器位置
     if (this.isScrolling && this.matcher) {
       const currentProgress = Math.abs(this.data.offsetY) / this.contentHeight;
@@ -430,18 +541,23 @@ Page({
     this.saveSettings();
   },
 
+  setSpeedPreset: function(e) {
+    this.setData({ wordsPerMinute: Number(e.currentTarget.dataset.wpm) });
+    this.saveSettings();
+  },
+
   onCountdownDurationChange: function(e) {
     this.setData({ countdownDuration: e.detail.value });
     this.saveSettings();
   },
 
   setFontColor: function(e) {
-    this.setData({ fontColor: e.currentTarget.dataset.color });
+    this.setData({ fontColor: e.currentTarget.dataset.color.toLowerCase() });
     this.saveSettings();
   },
 
   setBgColor: function(e) {
-    const color = e.currentTarget.dataset.color;
+    const color = e.currentTarget.dataset.color.toLowerCase();
     this.setData({ bgColor: color });
     this.updateStatusBarColor(color);
     this.saveSettings();
@@ -459,7 +575,11 @@ Page({
 
   loadSettings: function() {
     const s = wx.getStorageSync(STORAGE_KEYS.SETTINGS);
-    if (s) this.setData({ ...s });
+    if (s) {
+      if (s.fontColor) s.fontColor = s.fontColor.toLowerCase();
+      if (s.bgColor) s.bgColor = s.bgColor.toLowerCase();
+      this.setData({ ...s });
+    }
   },
 
   saveSettings: function() {
@@ -515,9 +635,15 @@ Page({
 
   resetUiAutoHide: function() {
     if (this.uiHideTimer) clearTimeout(this.uiHideTimer);
+    if (this.isUnloaded) return;
     this.setData({ uiHidden: false });
-    if (this.data.mode === 'basic' && !this.data.isRunning) {
-      this.uiHideTimer = setTimeout(() => this.setData({ uiHidden: true }), 5000);
+    if (!this.data.isRunning && this.data.countdown === 0 && !this.data.showSettings) {
+      this.uiHideTimer = setTimeout(() => {
+        this.uiHideTimer = null;
+        if (!this.isUnloaded) {
+          this.setData({ uiHidden: true });
+        }
+      }, 5000);
     }
   },
 
@@ -537,8 +663,13 @@ Page({
   },
 
   startRecord: function() {
+    if (!this.cameraContext) {
+      wx.showToast({ title: '相机未就绪', icon: 'none' });
+      return;
+    }
     this.cameraContext.startRecord({
       success: () => {
+        if (this.isUnloaded) return;
         this.setData({ recordStatus: 'recording' });
         wx.showToast({ title: '开始录制', icon: 'none' });
       },
@@ -553,9 +684,15 @@ Page({
       if(callback) callback();
       return;
     }
+    if (this.data.recordStatus !== 'recording') {
+      if(callback) callback();
+      return;
+    }
     this.cameraContext.stopRecord({
       success: (res) => {
-        this.setData({ recordStatus: 'ready' });
+        if (!this.isUnloaded) {
+          this.setData({ recordStatus: 'ready' });
+        }
         const { tempVideoPath } = res;
         wx.showLoading({ title: '正在保存...' });
         wx.saveVideoToPhotosAlbum({
@@ -589,6 +726,6 @@ Page({
   },
 
   onShareAppMessage: function() {
-    return { title: '智能题词器', path: '/pages/index/index' };
+    return { title: '随声提词', path: '/pages/index/index' };
   }
 });

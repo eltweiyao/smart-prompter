@@ -1,7 +1,7 @@
 {
   "miniprogramRoot": "miniprogram/",
   "projectname": "ai-smart-prompter",
-  "description": "智提词",
+  "description": "随声提词",
   "appid": "wxa511b541a1c867e6",
   "setting": {
     "urlCheck": true,

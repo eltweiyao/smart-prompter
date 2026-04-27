@@ -76,14 +76,14 @@ Page({
 
   onShareAppMessage: function () {
     return {
-      title: '智能题词器',
+      title: '随声提词',
       path: '/pages/index/index'
     }
   },
 
   onShareTimeline: function () {
     return {
-      title: '智能题词器'
+      title: '随声提词'
     }
   }
 })

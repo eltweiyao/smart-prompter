@@ -1,12 +1,20 @@
 <view class="container-editor">
+  <view class="editor-header">
+    <view class="editor-title">脚本编辑</view>
+    <view class="editor-subtitle">保存后可在首页继续使用</view>
+  </view>
   <view class="page-body">
     <input class="input-title" placeholder="请输入标题" value="{{title}}" bindinput="onTitleInput" />
     <view class="content-wrapper">
+      <view class="content-head">
+        <text>正文</text>
+        <text>{{content.length}} 字</text>
+      </view>
       <textarea class="input-content" placeholder="请输入提词内容..." value="{{content}}" bindinput="onContentInput" maxlength="-1"></textarea>
       <view class="input-footer">
-        <text class="char-count">{{content.length}} 字</text>
+        <text class="char-count">本地保存</text>
         <view class="right-actions">
-          <view class="beautify-btn" bindtap="processContent" wx:if="{{content.length > 0}}">✨ 美化</view>
+          <view class="beautify-btn" bindtap="processContent" wx:if="{{content.length > 0}}">整理</view>
           <view class="clear-btn" bindtap="clearContent" wx:if="{{content.length > 0}}">清空</view>
         </view>
       </view>

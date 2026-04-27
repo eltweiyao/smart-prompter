@@ -16,10 +16,14 @@
   <view class="header {{isLandscape ? 'header-landscape' : ''}}" style="padding-top: {{isLandscape ? 5 : statusBarHeight}}px; opacity: {{isRunning || uiHidden ? 0 : 1}}; pointer-events: {{isRunning || uiHidden ? 'none' : 'auto'}};">
     <view class="left-group">
       <view class="icon-btn" catchtap="goBack">
-        <text class="icon">←</text>
+        <view class="nav-icon nav-back"></view>
       </view>
       <view class="icon-btn" catchtap="toggleSettings">
-        <text class="icon">⚙️</text>
+        <view class="nav-settings">
+          <view class="nav-dot"></view>
+          <view class="nav-dot"></view>
+          <view class="nav-dot"></view>
+        </view>
       </view>
     </view>
     
@@ -48,6 +52,7 @@
     bindtouchstart="onTouchStart"
     bindtouchmove="onTouchMove"
     bindtouchend="onTouchEnd"
+    bindtouchcancel="onTouchEnd"
     bindtap="onScreenTap"
   >
     <view 
@@ -56,11 +61,12 @@
       change:offsetY="{{anim.targetYChange}}"
       offsetY="{{offsetY}}"
       data-mode="{{mode}}"
+      data-dragging="{{isDragging}}"
     >
       <!-- Dynamic Padding based on Baseline -->
       <view class="padding-space" style="height: {{baselinePercent}}vh;"></view>
       
-      <view class="text-content" style="font-size: {{fontSize}}px; line-height: {{lineHeight}}; letter-spacing: {{letterSpacing}}px; text-align: {{textAlign}}; color: {{fontColor}};">
+      <view class="text-content {{isLandscape ? 'text-content-landscape' : ''}}" style="font-size: {{fontSize}}px; line-height: {{lineHeight}}; letter-spacing: {{letterSpacing}}px; text-align: {{textAlign}}; color: {{fontColor}};">
         <text>{{content}}</text>
       </view>
 
@@ -73,16 +79,26 @@
     <text class="countdown-text">{{countdown}}</text>
   </view>
 
+  <view class="smart-status smart-status-{{smartStatusType}} {{isLandscape ? 'smart-status-landscape' : ''}}" wx:if="{{mode === 'smart' && isRunning && smartStatusText}}">
+    <view class="smart-status-dot"></view>
+    <text>{{smartStatusText}}</text>
+  </view>
+
+  <view class="smart-status running-status {{isLandscape ? 'smart-status-landscape' : ''}}" wx:if="{{mode === 'basic' && isRunning}}">
+    <view class="smart-status-dot"></view>
+    <text>提词中</text>
+  </view>
+
   <!-- Bottom Controls -->
-  <view class="controls" wx:if="{{!isRunning && countdown === 0 && !uiHidden}}">
-    <block wx:if="{{mode === 'basic'}}">
+  <view class="controls" wx:if="{{!isRunning && countdown === 0}}">
+    <block wx:if="{{!isRunning && mode === 'basic'}}">
       <view class="btn-play-round" catchtap="startBasicScroll">
         <view class="icon-play"></view>
       </view>
     </block>
 
-    <block wx:if="{{mode === 'smart'}}">
-      <view class="btn-play-round btn-play-ai" bindtap="startSmartFollow">
+    <block wx:if="{{!isRunning && mode === 'smart'}}">
+      <view class="btn-play-round btn-play-ai" catchtap="startSmartFollow">
         <view class="icon-play"></view>
       </view>
     </block>
@@ -91,6 +107,13 @@
   <!-- Settings Panel -->
   <view class="settings-mask {{showSettings ? 'visible' : ''}}" bindtap="toggleSettings"></view>
   <view class="settings-panel {{isLandscape ? 'settings-panel-side' : 'settings-panel-bottom'}} {{showSettings ? 'visible' : ''}}">
+    <view class="settings-header">
+      <view>
+        <view class="settings-title-main">提词设置</view>
+        <view class="settings-title-sub">{{mode === 'basic' ? '基础滚动' : '智能跟随'}}</view>
+      </view>
+      <view class="settings-close-icon" bindtap="toggleSettings">×</view>
+    </view>
     
     <!-- Tabs -->
     <view class="settings-tabs">
@@ -105,19 +128,30 @@
       <view wx:if="{{activeSettingsTab === 'display'}}">
         <view class="setting-group">
           <view class="setting-item">
-            <text>字号 ({{fontSize}}px)</text>
+            <view class="setting-row-head">
+              <text>字号</text>
+              <text class="setting-value">{{fontSize}}px</text>
+            </view>
             <slider min="20" max="80" value="{{fontSize}}" bindchange="onFontSizeChange" block-size="20"/>
           </view>
           <view class="setting-item">
-            <text>行间距 ({{lineHeight}})</text>
+            <view class="setting-row-head">
+              <text>行间距</text>
+              <text class="setting-value">{{lineHeight}}</text>
+            </view>
             <slider min="1.0" max="3.0" step="0.1" value="{{lineHeight}}" bindchange="onLineHeightChange" block-size="20"/>
           </view>
           <view class="setting-item">
-            <text>字间距 ({{letterSpacing}}px)</text>
+            <view class="setting-row-head">
+              <text>字间距</text>
+              <text class="setting-value">{{letterSpacing}}px</text>
+            </view>
             <slider min="0" max="10" step="1" value="{{letterSpacing}}" bindchange="onLetterSpacingChange" block-size="20"/>
           </view>
           <view class="setting-item">
-            <text>对齐方式</text>
+            <view class="setting-row-head">
+              <text>对齐方式</text>
+            </view>
             <view class="align-options">
               <view class="align-btn-text {{textAlign === 'left' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="left">左</view>
               <view class="align-btn-text {{textAlign === 'center' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="center">中</view>
@@ -132,11 +166,22 @@
         <block wx:if="{{mode === 'basic'}}">
           <view class="setting-group">
             <view class="setting-item">
-              <text>开始倒计时 ({{countdownDuration}}秒)</text>
+              <view class="setting-row-head">
+                <text>开始倒计时</text>
+                <text class="setting-value">{{countdownDuration}}秒</text>
+              </view>
               <slider min="0" max="10" value="{{countdownDuration}}" bindchange="onCountdownDurationChange" block-size="20"/>
             </view>
             <view class="setting-item">
-              <text>每分钟字数 ({{wordsPerMinute}})</text>
+              <view class="setting-row-head">
+                <text>每分钟字数</text>
+                <text class="setting-value">{{wordsPerMinute}}</text>
+              </view>
+              <view class="speed-presets">
+                <view class="speed-preset {{wordsPerMinute === 130 ? 'active' : ''}}" bindtap="setSpeedPreset" data-wpm="130">慢</view>
+                <view class="speed-preset {{wordsPerMinute === 180 ? 'active' : ''}}" bindtap="setSpeedPreset" data-wpm="180">标准</view>
+                <view class="speed-preset {{wordsPerMinute === 240 ? 'active' : ''}}" bindtap="setSpeedPreset" data-wpm="240">快</view>
+              </view>
               <slider min="60" max="400" value="{{wordsPerMinute}}" bindchange="onWpmChange" block-size="20"/>
             </view>
           </view>
@@ -151,21 +196,24 @@
         <view class="setting-group">
           <view class="setting-title">文字颜色</view>
           <view class="color-options-grid">
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#FFFFFF"><view class="color-circle" style="background:#FFFFFF; border: 1px solid #ddd;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#000000"><view class="color-circle" style="background:#000000; border: 1px solid #ddd;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#FFD700"><view class="color-circle" style="background:#FFD700;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#1E90FF"><view class="color-circle" style="background:#1E90FF;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setFontColor" data-color="#FF4500"><view class="color-circle" style="background:#FF4500;"></view></view>
+            <view class="color-circle-wrapper {{fontColor === '#ffffff' ? 'active' : ''}}" bindtap="setFontColor" data-color="#ffffff"><view class="color-circle" style="background:#FFFFFF; border: 1px solid #ddd;"></view></view>
+            <view class="color-circle-wrapper {{fontColor === '#000000' ? 'active' : ''}}" bindtap="setFontColor" data-color="#000000"><view class="color-circle" style="background:#000000; border: 1px solid #ddd;"></view></view>
+            <view class="color-circle-wrapper {{fontColor === '#ffd700' ? 'active' : ''}}" bindtap="setFontColor" data-color="#ffd700"><view class="color-circle" style="background:#FFD700;"></view></view>
+            <view class="color-circle-wrapper {{fontColor === '#1e90ff' ? 'active' : ''}}" bindtap="setFontColor" data-color="#1e90ff"><view class="color-circle" style="background:#1E90FF;"></view></view>
+            <view class="color-circle-wrapper {{fontColor === '#ff4500' ? 'active' : ''}}" bindtap="setFontColor" data-color="#ff4500"><view class="color-circle" style="background:#FF4500;"></view></view>
+            <view class="color-circle-wrapper {{fontColor === '#7cffb2' ? 'active' : ''}}" bindtap="setFontColor" data-color="#7cffb2"><view class="color-circle" style="background:#7CFFB2;"></view></view>
+            <view class="color-circle-wrapper {{fontColor === '#f5f0dc' ? 'active' : ''}}" bindtap="setFontColor" data-color="#f5f0dc"><view class="color-circle" style="background:#F5F0DC;"></view></view>
           </view>
         </view>
         <view class="setting-group">
           <view class="setting-title">背景颜色</view>
           <view class="color-options-grid">
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#000000"><view class="color-circle" style="background:#000000; border: 1px solid #ddd;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#FFFFFF"><view class="color-circle" style="background:#FFFFFF; border: 1px solid #ddd;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#00B140"><view class="color-circle" style="background:#00B140;"></view></view>
-             <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#191970"><view class="color-circle" style="background:#191970;"></view></view>
-            <view class="color-circle-wrapper" bindtap="setBgColor" data-color="#808080"><view class="color-circle" style="background:#808080;"></view></view>
+            <view class="color-circle-wrapper {{bgColor === '#000000' ? 'active' : ''}}" bindtap="setBgColor" data-color="#000000"><view class="color-circle" style="background:#000000; border: 1px solid #ddd;"></view></view>
+            <view class="color-circle-wrapper {{bgColor === '#ffffff' ? 'active' : ''}}" bindtap="setBgColor" data-color="#ffffff"><view class="color-circle" style="background:#FFFFFF; border: 1px solid #ddd;"></view></view>
+            <view class="color-circle-wrapper {{bgColor === '#00b140' ? 'active' : ''}}" bindtap="setBgColor" data-color="#00b140"><view class="color-circle" style="background:#00B140;"></view></view>
+            <view class="color-circle-wrapper {{bgColor === '#191970' ? 'active' : ''}}" bindtap="setBgColor" data-color="#191970"><view class="color-circle" style="background:#191970;"></view></view>
+            <view class="color-circle-wrapper {{bgColor === '#808080' ? 'active' : ''}}" bindtap="setBgColor" data-color="#808080"><view class="color-circle" style="background:#808080;"></view></view>
+            <view class="color-circle-wrapper {{bgColor === '#24262b' ? 'active' : ''}}" bindtap="setBgColor" data-color="#24262b"><view class="color-circle" style="background:#24262B;"></view></view>
           </view>
         </view>
       </view>
@@ -174,7 +222,10 @@
       <view wx:if="{{activeSettingsTab === 'advanced'}}">
         <view class="setting-group">
           <view class="setting-item">
-            <text>基准线位置 ({{baselinePercent}}%)</text>
+            <view class="setting-row-head">
+              <text>基准线位置</text>
+              <text class="setting-value">{{baselinePercent}}%</text>
+            </view>
             <slider min="20" max="80" step="5" value="{{baselinePercent}}" bindchange="onBaselineChange" block-size="20"/>
           </view>
           <view class="setting-item switch-item">
@@ -203,27 +254,36 @@
 
 <!-- Guide Overlay -->
 <view class="guide-overlay" wx:if="{{showGuide}}">
-  <view class="guide-mask"></view>
-  
-  <!-- Step 1: Mode Switch -->
-  <view class="guide-step step-mode">
-    <view class="guide-arrow arrow-top">↑</view>
-    <view class="guide-text">切换模式</view>
-  </view>
+  <view class="guide-card">
+    <view class="guide-title">快速开始</view>
+    <view class="guide-subtitle">提词页常用操作</view>
 
-  <!-- Step 2: Settings -->
-  <view class="guide-step step-settings">
-    <view class="guide-arrow arrow-top">↑</view>
-    <view class="guide-text">提词设置</view>
-  </view>
+    <view class="guide-list">
+      <view class="guide-row">
+        <view class="guide-index">1</view>
+        <view>
+          <view class="guide-row-title">选择提词方式</view>
+          <view class="guide-row-desc">基础模式匀速滚动，跟随模式会听你朗读自动定位。</view>
+        </view>
+      </view>
+      <view class="guide-row">
+        <view class="guide-index">2</view>
+        <view>
+          <view class="guide-row-title">调整显示和速度</view>
+          <view class="guide-row-desc">左上角设置可调整字号、颜色、滚动速度和基准线。</view>
+        </view>
+      </view>
+      <view class="guide-row">
+        <view class="guide-index">3</view>
+        <view>
+          <view class="guide-row-title">开始后点屏幕暂停</view>
+          <view class="guide-row-desc">运行中会保留“提词中”或“聆听中”状态提示。</view>
+        </view>
+      </view>
+    </view>
 
-  <!-- Step 3: Play Button -->
-  <view class="guide-step step-play">
-    <view class="guide-arrow arrow-bottom">↓</view>
-    <view class="guide-text">点击开始提词</view>
+    <button class="btn-guide-confirm" bindtap="closeGuide">知道了</button>
   </view>
-
-  <view class="btn-guide-confirm" bindtap="closeGuide">我知道了</view>
 </view>
 
 </view>

@@ -7,12 +7,21 @@ function targetYChange(newVal, oldVal, ownerInstance, instance) {
   
   var dataset = content.getDataset();
   var mode = dataset.mode || 'basic';
+  var isDragging = dataset.dragging === true || dataset.dragging === 'true';
+
+  if (isDragging) {
+    content.setStyle({
+      'transform': 'translateY(' + newVal + 'px)',
+      'transition': 'none'
+    });
+    return;
+  }
 
   if (mode === 'smart') {
     // 仅在智能跟随模式下接管动画，保证 ASR 增量更新时的丝滑感
     content.setStyle({
       'transform': 'translateY(' + newVal + 'px)',
-      'transition': 'transform 0.4s ease-out'
+      'transition': 'transform 0.3s ease-out'
     });
   } else {
     // 基础模式下，WXS 不应干预 transition 样式，

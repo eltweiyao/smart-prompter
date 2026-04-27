@@ -125,22 +125,11 @@ class SmartMatcher {
       this.lastAsrText = cleanDelta;
     }
 
-    this.lastSpeechTime = Date.now();
-
-    // 推进当前位置（基于增量字符数）
-    this.currentPosition += cleanDelta.length;
-
-    // 限制不超过脚本长度
-    const maxPosition = this.cleanScript.length;
-    if (this.currentPosition > maxPosition) {
-      this.currentPosition = maxPosition;
-    }
-
     // 在校准窗口内搜索匹配
     const matchResult = this.findBestMatch(cleanDelta);
 
     if (!matchResult) {
-      return this.getProgress();
+      return null;
     }
 
     const { position, matchedLen } = matchResult;
@@ -149,7 +138,7 @@ class SmartMatcher {
     const positionDiff = position - this.currentPosition;
 
     if (positionDiff < CONFIG.POSITION_DIFF_MIN || positionDiff > CONFIG.POSITION_DIFF_MAX) {
-      return this.getProgress();
+      return null;
     }
 
     // 计算校准置信度
@@ -159,9 +148,11 @@ class SmartMatcher {
     if (confidence >= CONFIG.CONFIDENCE_THRESHOLD) {
       this.currentPosition = position + matchedLen;
       this.calibrationConfidence = confidence;
+      this.lastSpeechTime = Date.now();
+      return this.getProgress();
     }
 
-    return this.getProgress();
+    return null;
   }
 
   /**

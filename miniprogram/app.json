@@ -7,7 +7,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",
-    "navigationBarTitleText": "AI 灵动提词器",
+    "navigationBarTitleText": "随声提词",
     "navigationBarTextStyle": "black",
     "pageOrientation": "auto"
   },
