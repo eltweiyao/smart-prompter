@@ -39,6 +39,7 @@ Page({
   },
 
   contentHeight: 0,
+  contentWidth: 0,
   viewportHeight: 0,
   matcher: null,
   lastTouchY: 0,
@@ -49,6 +50,10 @@ Page({
   resizeMeasureTimer: null,
   recognitionRestartTimer: null,
   orientationTimer: null,
+  smartFollowLeadRows: {
+    portrait: 0.25,
+    landscape: 0
+  },
   tempScriptKey: '',
   isUnloaded: false,
 
@@ -116,6 +121,8 @@ Page({
       const sysInfo = wx.getSystemInfoSync();
       that.setData({
         isLandscape: sysInfo.windowWidth > sysInfo.windowHeight
+      }, () => {
+        that.initLayoutLoop();
       });
       that.updateCameraView();
     };
@@ -240,11 +247,18 @@ Page({
 
   measureLayout: function(callback) {
     const query = wx.createSelectorQuery().in(this);
-    query.select('.text-content').boundingClientRect();
+    query.select('.text-content').fields({
+      size: true,
+      computedStyle: ['paddingLeft', 'paddingRight']
+    });
     query.select('.prompter-viewport').boundingClientRect();
     query.exec((res) => {
       if (res && res[0] && res[1]) {
+        const contentRect = res[0];
+        const paddingLeft = this.parsePx(contentRect.paddingLeft);
+        const paddingRight = this.parsePx(contentRect.paddingRight);
         this.contentHeight = res[0].height;
+        this.contentWidth = Math.max(1, (contentRect.width || 0) - paddingLeft - paddingRight);
         this.viewportHeight = res[1].height;
         if (callback) callback({ contentHeight: this.contentHeight, viewportHeight: this.viewportHeight });
       } else if (callback) {
@@ -253,10 +267,73 @@ Page({
     });
   },
 
+  parsePx: function(value) {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  },
+
+  getEstimatedCharsPerLine: function() {
+    const fontSize = Math.max(1, this.data.fontSize);
+    const letterSpacing = Math.max(0, this.data.letterSpacing || 0);
+    const charWidth = fontSize + letterSpacing;
+    return Math.max(1, Math.floor((this.contentWidth || fontSize) / charWidth));
+  },
+
+  getTextUnitLength: function(text) {
+    let units = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(char)) {
+        units += 1;
+      } else if (/\s/.test(char)) {
+        units += 0.35;
+      } else {
+        units += 0.55;
+      }
+    }
+    return units;
+  },
+
+  getEstimatedRowsForLines: function(lines, charsPerLine, partialLastLine) {
+    let rows = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const units = this.getTextUnitLength(lines[i]);
+      const isLastLine = i === lines.length - 1;
+
+      if (partialLastLine && isLastLine) {
+        rows += Math.floor(units / charsPerLine);
+      } else {
+        rows += Math.max(1, Math.ceil(units / charsPerLine));
+      }
+    }
+
+    return rows;
+  },
+
+  getSmartFollowRowScale: function(charsPerLine) {
+    const content = this.data.content || '';
+    const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
+    const actualRows = Math.max(1, Math.round(this.contentHeight / lineHeightPx));
+    const estimatedRows = Math.max(1, this.getEstimatedRowsForLines(content.split('\n'), charsPerLine, false));
+    return actualRows / estimatedRows;
+  },
+
+  getSmartFollowRowsByText: function(progress) {
+    const content = this.data.content || '';
+    if (!content) return 0;
+
+    const targetIndex = Math.max(0, Math.min(content.length, Math.floor(content.length * progress)));
+    const charsPerLine = this.getEstimatedCharsPerLine();
+    const rows = this.getEstimatedRowsForLines(content.slice(0, targetIndex).split('\n'), charsPerLine, true);
+    return rows * this.getSmartFollowRowScale(charsPerLine);
+  },
+
   getSmartFollowOffset: function(progress) {
     const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
-    const rawDistance = Math.max(0, this.contentHeight * progress);
-    const predictedDistance = rawDistance + lineHeightPx * 0.25;
+    const rawDistance = this.getSmartFollowRowsByText(progress) * lineHeightPx;
+    const leadRows = this.data.isLandscape ? this.smartFollowLeadRows.landscape : this.smartFollowLeadRows.portrait;
+    const predictedDistance = rawDistance + lineHeightPx * leadRows;
     const snappedDistance = Math.floor(predictedDistance / lineHeightPx) * lineHeightPx + lineHeightPx;
     const maxDistance = Math.max(0, this.contentHeight - lineHeightPx);
     return -Math.min(snappedDistance, maxDistance);

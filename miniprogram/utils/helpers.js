@@ -45,53 +45,14 @@ function formatDate(timestamp) {
 }
 
 /**
- * 处理台本内容 - 面向提词场景的温和整理
- *
- * 规则：
- * 1. 统一换行和空格，去掉每行首尾空白
- * 2. 保留空行作为段落分隔，但最多保留一个空行
- * 3. 合并复制粘贴产生的碎换行
- * 4. 按句末标点重新断行，方便提词时掌握节奏
+ * 处理台本内容 - 删除所有换行符
  */
 function processContent(content) {
   if (!content) return '';
 
-  const normalized = content
-    .replace(/\r\n?/g, '\n')
-    .replace(/\u3000/g, ' ')
-    .replace(/[ \t]+/g, ' ')
+  return content
+    .replace(/[\r\n]+/g, '')
     .trim();
-
-  if (!normalized) return '';
-
-  return normalized
-    .split(/\n{2,}/)
-    .map(formatParagraph)
-    .filter(Boolean)
-    .join('\n\n');
-}
-
-function formatParagraph(paragraph) {
-  const text = paragraph
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-    .join(' ')
-    .replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, '$1$2')
-    .replace(/\s+([，。！？；：、,.!?;:])/g, '$1')
-    .replace(/([，。！？；：、])\s+([\u4e00-\u9fa5])/g, '$1$2')
-    .replace(/([（《“‘])\s+/g, '$1')
-    .replace(/\s+([）》”’])/g, '$1')
-    .trim();
-
-  if (!text) return '';
-
-  return text
-    .replace(/([。！？!?；;])\s*/g, '$1\n')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-    .join('\n');
 }
 
 /**
