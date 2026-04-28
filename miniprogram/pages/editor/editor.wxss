@@ -3,25 +3,26 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  background: #f3f5f8;
-  color: #141923;
+  background: #feffff;
+  color: #172033;
 }
 
 .editor-header {
-  padding: 30rpx 30rpx 6rpx;
+  padding: 18rpx 30rpx 6rpx;
 }
 
 .editor-title {
-  font-size: 40rpx;
+  font-family: 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', sans-serif;
+  font-size: 48rpx;
   line-height: 1.15;
-  font-weight: 800;
-  color: #111827;
+  font-weight: 900;
+  color: #00b8d9;
 }
 
 .editor-subtitle {
   margin-top: 8rpx;
   font-size: 24rpx;
-  color: #687385;
+  color: #64748b;
 }
 
 .page-body {
@@ -39,11 +40,11 @@
   font-weight: 700;
   padding: 0 24rpx;
   background: #ffffff;
-  border: 1rpx solid #e4e8ef;
+  border: 0;
   border-radius: 22rpx;
   margin-bottom: 18rpx;
   box-sizing: border-box;
-  color: #202736;
+  color: #172033;
 }
 
 .content-wrapper {
@@ -52,9 +53,9 @@
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  border: 1rpx solid #e4e8ef;
+  border: 0;
   border-radius: 26rpx;
-  box-shadow: 0 10rpx 30rpx rgba(20, 25, 35, 0.045);
+  box-shadow: 0 14rpx 38rpx rgba(0, 166, 166, 0.12);
   overflow: hidden;
 }
 
@@ -64,12 +65,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 20rpx 24rpx 0;
-  color: #687385;
+  color: #64748b;
   font-size: 24rpx;
 }
 
 .content-head text:first-child {
-  color: #202736;
+  color: #172033;
   font-size: 28rpx;
   font-weight: 700;
 }
@@ -82,7 +83,7 @@
   padding: 18rpx 24rpx;
   box-sizing: border-box;
   line-height: 1.64;
-  color: #1f2937;
+  color: #172033;
 }
 
 .input-footer {
@@ -92,12 +93,12 @@
   align-items: center;
   gap: 18rpx;
   padding: 16rpx 20rpx 20rpx;
-  border-top: 1rpx solid #eef2f6;
+  border-top: 1rpx solid #dffaf6;
 }
 
 .char-count {
   font-size: 23rpx;
-  color: #8a94a6;
+  color: #94a3b8;
 }
 
 .right-actions {
@@ -115,13 +116,13 @@
 }
 
 .beautify-btn {
-  color: #0b63ce;
-  background: #eaf2ff;
+  color: #078bc7;
+  background: #e0f7ff;
 }
 
 .clear-btn {
-  color: #b42318;
-  background: #fff0ee;
+  color: #475569;
+  background: #f1f5f9;
 }
 
 .btn-group {
@@ -136,12 +137,12 @@
   line-height: 86rpx;
   margin: 0;
   padding: 0;
-  background: #1167d8;
+  background: #00a6d6;
   color: #fff;
   border-radius: 999rpx;
   font-size: 29rpx;
   font-weight: 700;
-  box-shadow: 0 8rpx 18rpx rgba(17, 103, 216, 0.24);
+  box-shadow: 0 10rpx 22rpx rgba(0, 166, 214, 0.22);
 }
 
 .btn-save:active {

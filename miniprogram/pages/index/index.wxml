@@ -46,7 +46,7 @@
       </view>
       <view class="setting-item" bindtap="toggleRecording">
         <text>录制</text>
-        <switch color="#1aac19" checked="{{isRecording}}" />
+        <switch color="#00c7b7" checked="{{isRecording}}" />
       </view>
     </view>
 

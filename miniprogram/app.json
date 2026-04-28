@@ -6,8 +6,8 @@
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#fff",
-    "navigationBarTitleText": "随声提词",
+    "navigationBarBackgroundColor": "#feffff",
+    "navigationBarTitleText": "",
     "navigationBarTextStyle": "black",
     "pageOrientation": "auto"
   },

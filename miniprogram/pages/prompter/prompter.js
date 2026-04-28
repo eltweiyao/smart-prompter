@@ -532,7 +532,7 @@ Page({
   },
 
   onTextAlignChange: function(e) {
-    this.setData({ textAlign: e.currentTarget.dataset.align });
+    this.setData({ textAlign: e.currentTarget.dataset.align }, () => this.initLayoutLoop());
     this.saveSettings();
   },
 

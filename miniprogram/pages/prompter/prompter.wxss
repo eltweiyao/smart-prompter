@@ -130,6 +130,10 @@
   box-sizing: border-box;
 }
 
+.text-content-justify {
+  text-align-last: left;
+}
+
 .text-content-landscape {
   padding-left: 96px;
   padding-right: 128px;
@@ -155,7 +159,7 @@
   opacity: 0.88;
 }
 .focus-arrow {
-  color: #2f8cff;
+  color: #00a6d6;
   font-size: 34rpx;
   margin-left: 12rpx;
   margin-right: 10rpx;
@@ -164,8 +168,8 @@
 .focus-line {
   flex: 1;
   height: 2px;
-  background: rgba(47, 140, 255, 0.92);
-  box-shadow: 0 0 12rpx rgba(47, 140, 255, 0.45);
+  background: rgba(0, 166, 214, 0.92);
+  box-shadow: 0 0 12rpx rgba(0, 199, 183, 0.42);
 }
 
 
@@ -179,12 +183,12 @@
 }
 .ai-status {
   font-size: 26rpx;
-  color: #007aff;
-  background: rgba(0,122,255,0.15);
+  color: #008a98;
+  background: rgba(0, 199, 183, 0.15);
   backdrop-filter: blur(4px);
   padding: 12rpx 30rpx;
   border-radius: 40rpx;
-  border: 1px solid rgba(0,122,255,0.3);
+  border: 1px solid rgba(0, 199, 183, 0.30);
   white-space: nowrap;
 }
 
@@ -391,7 +395,7 @@
 }
 .color-circle-wrapper.active {
   background: #ffffff;
-  border-color: #2f8cff;
+  border-color: #00a6d6;
 }
 .icon-align {
   display: flex;
@@ -407,16 +411,61 @@
 
 .align-btn-text {
   flex: 1;
-  font-size: 26rpx;
   color: #4b5563;
-  padding: 16rpx 0;
+  height: 72rpx;
+  padding: 0;
   background: #eef1f5;
-  border-radius: 999rpx;
-  text-align: center;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 .align-btn-text.active {
-  background: #007aff;
+  background: #00a6d6;
   color: #fff;
+}
+
+.align-icon {
+  width: 44rpx;
+  height: 34rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.align-line {
+  height: 4rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+}
+
+.align-line-long {
+  width: 44rpx;
+}
+
+.align-line-mid {
+  width: 34rpx;
+}
+
+.align-line-short {
+  width: 24rpx;
+}
+
+.align-left {
+  align-items: flex-start;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.align-right {
+  align-items: flex-end;
+}
+
+.align-justify {
+  align-items: stretch;
 }
 
 .speed-presets {
@@ -436,7 +485,7 @@
 }
 
 .speed-preset.active {
-  background: #007aff;
+  background: #00a6d6;
   color: #fff;
   font-weight: 700;
 }
@@ -469,7 +518,7 @@
   margin-bottom: 8rpx;
 }
 .setting-value {
-  color: #007aff !important;
+  color: #008a98 !important;
   font-weight: 700;
 }
 .switch-item {
@@ -492,19 +541,6 @@
   display: flex;
   gap: 12rpx;
   margin-top: 8rpx;
-}
-.align-btn {
-  flex: 1;
-  text-align: center;
-  padding: 15rpx 0;
-  background: #f0f0f0;
-  border-radius: 10rpx;
-  font-size: 26rpx;
-  color: #666;
-}
-.align-btn.active {
-  background: #007aff;
-  color: #fff;
 }
 
 .btn-close-settings {
@@ -656,8 +692,25 @@
   margin-top: 5px;
 }
 .settings-panel-side .align-btn-text {
-  padding: 8px 0;
+  height: 34px;
+  padding: 0;
   border-radius: 7px;
+}
+.settings-panel-side .align-icon {
+  width: 22px;
+  height: 17px;
+}
+.settings-panel-side .align-line {
+  height: 2px;
+}
+.settings-panel-side .align-line-long {
+  width: 22px;
+}
+.settings-panel-side .align-line-mid {
+  width: 17px;
+}
+.settings-panel-side .align-line-short {
+  width: 12px;
 }
 .settings-panel-side .speed-presets {
   gap: 6px;
@@ -905,22 +958,23 @@
   max-width: 620rpx;
   padding: 36rpx;
   border-radius: 30rpx;
-  background: #f7f8fa;
-  box-shadow: 0 24rpx 60rpx rgba(0,0,0,0.30);
+  background: #feffff;
+  box-shadow: 0 24rpx 60rpx rgba(0,0,0,0.28);
   box-sizing: border-box;
 }
 
 .guide-title {
-  font-size: 38rpx;
+  font-family: 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', sans-serif;
+  font-size: 44rpx;
   line-height: 1.2;
-  font-weight: 800;
-  color: #1f3a5f;
+  font-weight: 900;
+  color: #00b8d9;
 }
 
 .guide-subtitle {
   margin-top: 8rpx;
   font-size: 24rpx;
-  color: #6b7f99;
+  color: #64748b;
 }
 
 .guide-list {
@@ -931,7 +985,7 @@
   display: flex;
   gap: 18rpx;
   padding: 20rpx 0;
-  border-bottom: 1rpx solid #e4e8ef;
+  border-bottom: 1rpx solid #c9f3ef;
 }
 
 .guide-row:last-child {
@@ -944,8 +998,8 @@
   height: 44rpx;
   line-height: 44rpx;
   border-radius: 50%;
-  background: #eaf2ff;
-  color: #1167d8;
+  background: #dffaf6;
+  color: #008a98;
   text-align: center;
   font-size: 24rpx;
   font-weight: 700;
@@ -955,14 +1009,14 @@
   font-size: 28rpx;
   line-height: 1.3;
   font-weight: 700;
-  color: #202736;
+  color: #172033;
 }
 
 .guide-row-desc {
   margin-top: 6rpx;
   font-size: 24rpx;
   line-height: 1.5;
-  color: #687385;
+  color: #64748b;
 }
 
 .btn-guide-confirm {
@@ -972,7 +1026,7 @@
   margin-top: 28rpx;
   padding: 0;
   border-radius: 999rpx;
-  background: #1167d8;
+  background: #00a6d6;
   color: #fff;
   font-size: 28rpx;
   font-weight: 700;

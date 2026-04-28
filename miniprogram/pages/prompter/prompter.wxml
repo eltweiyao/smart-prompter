@@ -66,7 +66,7 @@
       <!-- Dynamic Padding based on Baseline -->
       <view class="padding-space" style="height: {{baselinePercent}}vh;"></view>
       
-      <view class="text-content {{isLandscape ? 'text-content-landscape' : ''}}" style="font-size: {{fontSize}}px; line-height: {{lineHeight}}; letter-spacing: {{letterSpacing}}px; text-align: {{textAlign}}; color: {{fontColor}};">
+      <view class="text-content {{isLandscape ? 'text-content-landscape' : ''}} {{textAlign === 'justify' ? 'text-content-justify' : ''}}" style="font-size: {{fontSize}}px; line-height: {{lineHeight}}; letter-spacing: {{letterSpacing}}px; text-align: {{textAlign}}; color: {{fontColor}};">
         <text>{{content}}</text>
       </view>
 
@@ -153,9 +153,38 @@
               <text>对齐方式</text>
             </view>
             <view class="align-options">
-              <view class="align-btn-text {{textAlign === 'left' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="left">左</view>
-              <view class="align-btn-text {{textAlign === 'center' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="center">中</view>
-              <view class="align-btn-text {{textAlign === 'right' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="right">右</view>
+              <view class="align-btn-text align-icon-btn {{textAlign === 'left' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="left" aria-label="左对齐">
+                <view class="align-icon align-left">
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-mid"></view>
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-short"></view>
+                </view>
+              </view>
+              <view class="align-btn-text align-icon-btn {{textAlign === 'center' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="center" aria-label="居中对齐">
+                <view class="align-icon align-center">
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-mid"></view>
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-short"></view>
+                </view>
+              </view>
+              <view class="align-btn-text align-icon-btn {{textAlign === 'right' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="right" aria-label="右对齐">
+                <view class="align-icon align-right">
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-mid"></view>
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-short"></view>
+                </view>
+              </view>
+              <view class="align-btn-text align-icon-btn {{textAlign === 'justify' ? 'active' : ''}}" bindtap="onTextAlignChange" data-align="justify" aria-label="两端对齐">
+                <view class="align-icon align-justify">
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-long"></view>
+                  <view class="align-line align-line-long"></view>
+                </view>
+              </view>
             </view>
           </view>
         </view>
