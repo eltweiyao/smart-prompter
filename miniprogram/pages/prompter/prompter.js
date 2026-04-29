@@ -29,13 +29,14 @@ Page({
     isRecording: false,
     recordMode: false,  // 录制模式开关
     devicePosition: 'front',
-    recordStatus: 'ready',  // ready, recording, paused
+    recordStatus: 'ready',  // ready, recording, saving
     activeSettingsTab: 'display',
     cameraStyle: '',
     showGuide: false,
     smartStatusText: '',
     smartStatusType: 'idle',
     isDragging: false,
+    recordElapsedText: '0:00',
   },
 
   contentHeight: 0,
@@ -46,15 +47,26 @@ Page({
   uiHideTimer: null,
   lastRecognizedLength: 0,
   cameraContext: null,
+  recordStopInProgress: false,
+  recordSaveStarted: false,
+  recordTimer: null,
+  recordStartTime: 0,
   layoutTimer: null,
   resizeMeasureTimer: null,
   recognitionRestartTimer: null,
   recognitionRecoverFrames: 0,
   orientationTimer: null,
-  smartFollowLeadRows: {
-    portrait: 0.25,
-    landscape: 0
-  },
+  followTickTimer: null,
+  followAnchorOffset: 0,
+  lastAsrActivityTime: 0,
+  lastAsrCandidateTime: 0,
+  lastFollowTickTime: 0,
+  lastStableMatchTime: 0,
+  lastStableOriginalIndex: 0,
+  estimatedFollowSpeed: 0,
+  smartSpeaking: false,
+  smartFollowDebug: true,
+  lastFollowDebugTime: 0,
   tempScriptKey: '',
   isUnloaded: false,
 
@@ -190,6 +202,8 @@ Page({
       clearTimeout(this.orientationTimer);
       this.orientationTimer = null;
     }
+    this.clearFollowTick();
+    this.clearRecordTimer();
     if (this.tempScriptKey) {
       wx.removeStorageSync(this.tempScriptKey);
       this.tempScriptKey = '';
@@ -338,10 +352,10 @@ Page({
 
   getSmartFollowLeadRows: function(charsPerLine) {
     if (this.data.isLandscape) return 0.2;
-    if (charsPerLine <= 8) return 1.4;
-    if (charsPerLine <= 12) return 1;
-    if (charsPerLine <= 18) return 0.6;
-    return 0.25;
+    if (charsPerLine <= 8) return 0.45;
+    if (charsPerLine <= 12) return 0.3;
+    if (charsPerLine <= 18) return 0.2;
+    return 0.12;
   },
 
   getSmartFollowSnapThreshold: function(charsPerLine) {
@@ -357,22 +371,211 @@ Page({
       : matchInfo.originalIndex;
     const rawDistance = this.getSmartFollowRowsByIndex(originalIndex) * lineHeightPx;
     const leadRows = this.getSmartFollowLeadRows(charsPerLine);
-    const predictedDistance = rawDistance + lineHeightPx * leadRows;
-    const rowDistance = predictedDistance / lineHeightPx;
-    const baseRows = Math.floor(rowDistance);
-    const rowProgress = rowDistance - baseRows;
-    const snapThreshold = this.getSmartFollowSnapThreshold(charsPerLine);
-    const displayRows = rowProgress >= snapThreshold ? baseRows + 1 : baseRows;
-    const snappedDistance = displayRows * lineHeightPx;
+    const snappedDistance = rawDistance + lineHeightPx * leadRows;
     const maxDistance = Math.max(0, this.contentHeight - lineHeightPx);
     return -Math.min(snappedDistance, maxDistance);
   },
 
   updateSmartFollowOffset: function(matchInfo) {
     const targetOffset = this.getSmartFollowOffset(matchInfo);
-    if (targetOffset < this.data.offsetY) {
-      this.setData({ offsetY: targetOffset });
+    this.updateFollowAnchor(targetOffset, matchInfo);
+  },
+
+  updateFollowAnchor: function(targetOffset, matchInfo) {
+    if (!Number.isFinite(targetOffset) || targetOffset >= this.followAnchorOffset) {
+      this.logSmartFollowDebug('anchor-skip', {
+        targetOffset,
+        followAnchorOffset: this.followAnchorOffset,
+        matchInfo
+      });
+      return;
     }
+
+    const now = Date.now();
+    const previousIndex = this.lastStableOriginalIndex || 0;
+    const previousTime = this.lastStableMatchTime || 0;
+
+    if (previousTime && matchInfo && matchInfo.originalIndex > previousIndex) {
+      const elapsed = Math.max(1, now - previousTime);
+      const indexDelta = matchInfo.originalIndex - previousIndex;
+      const rowsDelta = this.getSmartFollowRowsByIndex(matchInfo.originalIndex) - this.getSmartFollowRowsByIndex(previousIndex);
+      const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
+      const speed = Math.max(0, rowsDelta * lineHeightPx / elapsed);
+
+      if (speed > 0) {
+        this.estimatedFollowSpeed = this.estimatedFollowSpeed
+          ? this.estimatedFollowSpeed * 0.7 + speed * 0.3
+          : speed;
+      }
+
+      if (indexDelta > 0) {
+        this.lastStableOriginalIndex = matchInfo.originalIndex;
+      }
+    } else if (matchInfo) {
+      this.lastStableOriginalIndex = matchInfo.originalIndex;
+    }
+
+    this.lastStableMatchTime = now;
+    this.followAnchorOffset = targetOffset;
+    this.logSmartFollowDebug('anchor-update', {
+      targetOffset,
+      previousIndex,
+      newIndex: matchInfo ? matchInfo.originalIndex : null,
+      confidence: matchInfo ? matchInfo.confidence : null,
+      matchType: matchInfo ? matchInfo.matchType : null,
+      estimatedFollowSpeed: Number(this.estimatedFollowSpeed.toFixed(4))
+    });
+  },
+
+  markSmartSpeechActivity: function(hasFreshSpeech, options) {
+    if (!hasFreshSpeech) {
+      this.logSmartFollowDebug('speech-no-fresh-delta', {
+        smartSpeaking: this.smartSpeaking,
+        lastAsrAge: this.lastAsrActivityTime ? Date.now() - this.lastAsrActivityTime : null
+      }, true);
+      return;
+    }
+
+    const info = options || {};
+    const now = Date.now();
+    const hadRecentActivity = !this.lastAsrActivityTime ||
+      now - this.lastAsrActivityTime <= CONFIG.SMART_SPEECH_RESUME_GRACE_MS;
+    const hasCandidate = this.lastAsrCandidateTime &&
+      now - this.lastAsrCandidateTime <= CONFIG.SMART_SPEECH_RESUME_GRACE_MS;
+    const shouldForceActive = !!info.hasMatch ||
+      (hadRecentActivity && info.deltaLength >= CONFIG.SMART_MIN_ACTIVE_DELTA_LENGTH);
+
+    if (shouldForceActive || this.smartSpeaking || hadRecentActivity || hasCandidate) {
+      this.lastAsrActivityTime = now;
+      this.lastAsrCandidateTime = 0;
+      this.smartSpeaking = true;
+      this.logSmartFollowDebug('speech-active', {
+        forceActive: shouldForceActive,
+        deltaLength: info.deltaLength,
+        hasMatch: !!info.hasMatch,
+        hadRecentActivity,
+        hasCandidate,
+        lastAsrActivityTime: this.lastAsrActivityTime
+      });
+      return;
+    }
+
+    this.lastAsrCandidateTime = now;
+    this.logSmartFollowDebug('speech-candidate', {
+      reason: 'first fresh delta after a long pause',
+      deltaLength: info.deltaLength,
+      hasMatch: !!info.hasMatch,
+      lastAsrAge: this.lastAsrActivityTime ? now - this.lastAsrActivityTime : null,
+      resumeGraceMs: CONFIG.SMART_SPEECH_RESUME_GRACE_MS
+    });
+  },
+
+  isSmartSpeakingActive: function(now) {
+    return this.smartSpeaking && now - this.lastAsrActivityTime <= CONFIG.SMART_SILENCE_HOLD_MS;
+  },
+
+  getDefaultFollowSpeed: function() {
+    const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
+    const charsPerLine = this.getEstimatedCharsPerLine();
+    const rowsPerSecond = Math.max(0.2, this.data.wordsPerMinute / Math.max(1, charsPerLine) / 60);
+    return rowsPerSecond * lineHeightPx / 1000;
+  },
+
+  getPredictedFollowTarget: function(now, currentOffset) {
+    return Math.min(currentOffset, this.followAnchorOffset);
+  },
+
+  startFollowTick: function() {
+    this.clearFollowTick();
+    this.lastFollowTickTime = Date.now();
+    this.followTickTimer = setInterval(() => this.runFollowTick(), CONFIG.SMART_FOLLOW_TICK_MS);
+  },
+
+  clearFollowTick: function() {
+    if (this.followTickTimer) {
+      clearInterval(this.followTickTimer);
+      this.followTickTimer = null;
+    }
+  },
+
+  logSmartFollowDebug: function(event, payload, throttle) {
+    if (!this.smartFollowDebug) return;
+    const now = Date.now();
+    if (throttle && now - this.lastFollowDebugTime < 500) return;
+    this.lastFollowDebugTime = now;
+    console.log(`[smart-follow ${event}]`, payload || {});
+  },
+
+  runFollowTick: function() {
+    if (this.isUnloaded || !this.data.isRunning || this.data.mode !== 'smart') return;
+
+    const now = Date.now();
+    const currentOffset = this.data.offsetY;
+    const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
+    const speaking = this.isSmartSpeakingActive(now);
+
+    if (!speaking) {
+      if (this.smartSpeaking) {
+        this.logSmartFollowDebug('pause', {
+          reason: 'silence timeout',
+          now,
+          lastAsrActivityTime: this.lastAsrActivityTime,
+          silenceMs: this.lastAsrActivityTime ? now - this.lastAsrActivityTime : null,
+          silenceHoldMs: CONFIG.SMART_SILENCE_HOLD_MS,
+          currentOffset,
+          followAnchorOffset: this.followAnchorOffset
+        });
+        this.smartSpeaking = false;
+        this.setData({
+          smartStatusText: '已暂停',
+          smartStatusType: 'idle',
+          transitionStyle: 'none'
+        });
+      }
+      this.lastFollowTickTime = now;
+      return;
+    }
+
+    const targetOffset = this.getPredictedFollowTarget(now, currentOffset);
+    if (targetOffset >= currentOffset) {
+      this.logSmartFollowDebug('tick-hold', {
+        reason: 'target is not ahead',
+        currentOffset,
+        targetOffset,
+        followAnchorOffset: this.followAnchorOffset,
+        asrIdleMs: this.lastAsrActivityTime ? now - this.lastAsrActivityTime : null
+      }, true);
+      this.lastFollowTickTime = now;
+      this.setData({
+        smartStatusText: '跟随中',
+        smartStatusType: 'listening'
+      });
+      return;
+    }
+
+    const distance = currentOffset - targetOffset;
+    const maxStepRows = this.data.isLandscape ? 0.28 : 0.2;
+    const maxStep = lineHeightPx * maxStepRows;
+    const minStep = Math.min(distance, lineHeightPx * 0.035);
+    const step = Math.min(distance, Math.max(minStep, distance * 0.22, maxStep * 0.35), maxStep);
+    this.logSmartFollowDebug('tick-move', {
+      currentOffset,
+      targetOffset,
+      followAnchorOffset: this.followAnchorOffset,
+      distance: Number(distance.toFixed(2)),
+      step: Number(step.toFixed(2)),
+      maxStep: Number(maxStep.toFixed(2)),
+      asrIdleMs: this.lastAsrActivityTime ? now - this.lastAsrActivityTime : null,
+      speaking
+    }, true);
+
+    this.lastFollowTickTime = now;
+    this.setData({
+      offsetY: currentOffset - step,
+      transitionStyle: `transform ${CONFIG.SMART_FOLLOW_TICK_MS / 1000}s linear`,
+      smartStatusText: '跟随中',
+      smartStatusType: 'listening'
+    });
   },
 
   loadScript: function(id) {
@@ -454,6 +657,14 @@ Page({
       this.matcher = new SmartMatcher(this.data.content, startIndex);
       this.lastRecognizedLength = 0;
       this.recognitionRecoverFrames = 0;
+      this.followAnchorOffset = this.data.offsetY;
+      this.lastAsrActivityTime = 0;
+      this.lastAsrCandidateTime = 0;
+      this.lastStableMatchTime = 0;
+      this.lastStableOriginalIndex = startIndex;
+      this.estimatedFollowSpeed = 0;
+      this.smartSpeaking = false;
+      this.startFollowTick();
 
       // 注册语音识别回调
       manager.onRecognize = (res) => {
@@ -463,10 +674,13 @@ Page({
         const isResetText = text.length < previousLength;
         const delta = !isResetText ? text.slice(previousLength) : '';
         this.lastRecognizedLength = text.length;
+        const hasFreshSpeech = delta.length > 0;
+        let matchInfo = null;
+        let shouldRecover = false;
 
         if (text && this.matcher) {
-          let matchInfo = delta ? this.matcher.matchDelta(delta) : null;
-          const shouldRecover = isResetText || this.recognitionRecoverFrames > 0 || matchInfo === null;
+          matchInfo = delta ? this.matcher.matchDelta(delta) : null;
+          shouldRecover = isResetText || this.recognitionRecoverFrames > 0 || matchInfo === null;
 
           if (shouldRecover) {
             const contextMatch = this.matcher.matchContext(text);
@@ -479,19 +693,50 @@ Page({
             this.recognitionRecoverFrames--;
           }
 
+          this.logSmartFollowDebug('match', {
+            shouldRecover,
+            matchType: matchInfo ? matchInfo.matchType : null,
+            confidence: matchInfo ? Number(matchInfo.confidence.toFixed(3)) : null,
+            matchedLen: matchInfo ? matchInfo.matchedLen : null,
+            originalIndex: matchInfo ? matchInfo.originalIndex : null,
+            progress: matchInfo ? Number(matchInfo.progress.toFixed(4)) : null
+          });
+
           if (matchInfo !== null) {
             this.updateSmartFollowOffset(matchInfo);
           }
         }
+
+        this.markSmartSpeechActivity(hasFreshSpeech, {
+          deltaLength: delta.length,
+          hasMatch: !!matchInfo
+        });
+        this.logSmartFollowDebug('recognize', {
+          textLength: text.length,
+          previousLength,
+          deltaLength: delta.length,
+          isResetText,
+          recoverFrames: this.recognitionRecoverFrames,
+          smartSpeaking: this.smartSpeaking,
+          textTail: text.slice(-18),
+          delta
+        });
       };
 
       manager.onStop = (res) => {
         if (!this.isUnloaded && this.data.isRunning && this.data.mode === 'smart') {
+          this.logSmartFollowDebug('recognition-stop', {
+            lastRecognizedLength: this.lastRecognizedLength,
+            recoverFrames: CONFIG.RECOVERY_FRAME_COUNT,
+            res
+          });
           this.lastRecognizedLength = 0;
           this.recognitionRecoverFrames = CONFIG.RECOVERY_FRAME_COUNT;
+          this.smartSpeaking = false;
           this.setData({
-            smartStatusText: '聆听中',
-            smartStatusType: 'listening'
+            smartStatusText: '已暂停',
+            smartStatusType: 'idle',
+            transitionStyle: 'none'
           });
           manager.start({ duration: 60000, lang: "zh_CN" });
         }
@@ -499,6 +744,7 @@ Page({
 
       manager.onError = (res) => {
         if (this.data.isRunning && this.data.mode === 'smart') {
+          this.logSmartFollowDebug('recognition-error', { res });
           if (this.recognitionRestartTimer) {
             clearTimeout(this.recognitionRestartTimer);
           }
@@ -507,9 +753,11 @@ Page({
             if (!this.isUnloaded && this.data.isRunning && this.data.mode === 'smart') {
               this.lastRecognizedLength = 0;
               this.recognitionRecoverFrames = CONFIG.RECOVERY_FRAME_COUNT;
+              this.smartSpeaking = false;
               this.setData({
-                smartStatusText: '聆听中',
-                smartStatusType: 'listening'
+                smartStatusText: '已暂停',
+                smartStatusType: 'idle',
+                transitionStyle: 'none'
               });
               manager.start({ duration: 60000, lang: "zh_CN" });
             }
@@ -558,11 +806,18 @@ Page({
   },
 
   stopSmartFollow: function() {
+    this.clearFollowTick();
+    this.smartSpeaking = false;
+    this.followAnchorOffset = this.data.offsetY;
+    this.lastAsrCandidateTime = 0;
+    this.estimatedFollowSpeed = 0;
+
     if (!this.isUnloaded) {
       this.setData({
         isRunning: false,
         smartStatusText: '',
-        smartStatusType: 'idle'
+        smartStatusType: 'idle',
+        transitionStyle: 'none'
       });
     }
 
@@ -618,6 +873,10 @@ Page({
       const currentProgress = Math.abs(this.data.offsetY) / this.contentHeight;
       const startIndex = Math.floor(this.data.content.length * currentProgress);
       this.matcher.setPosition(startIndex);
+      this.followAnchorOffset = this.data.offsetY;
+      this.lastStableOriginalIndex = startIndex;
+      this.lastStableMatchTime = Date.now();
+      this.estimatedFollowSpeed = 0;
     }
   },
 
@@ -784,6 +1043,45 @@ Page({
 
   // --- 录制相关 ---
 
+  formatRecordElapsed: function(seconds) {
+    const safeSeconds = Math.max(0, Math.min(CONFIG.CAMERA_RECORD_MAX_DURATION, Math.floor(seconds || 0)));
+    const minutes = Math.floor(safeSeconds / 60);
+    const restSeconds = safeSeconds % 60;
+    return `${minutes}:${restSeconds.toString().padStart(2, '0')}`;
+  },
+
+  updateRecordElapsed: function() {
+    if (!this.recordStartTime) {
+      this.setData({ recordElapsedText: '0:00' });
+      return;
+    }
+
+    const elapsed = Math.floor((Date.now() - this.recordStartTime) / 1000);
+    this.setData({ recordElapsedText: this.formatRecordElapsed(elapsed) });
+  },
+
+  startRecordTimer: function() {
+    this.clearRecordTimer();
+    this.recordStartTime = Date.now();
+    this.setData({ recordElapsedText: '0:00' });
+    this.recordTimer = setInterval(() => {
+      this.updateRecordElapsed();
+    }, 1000);
+  },
+
+  clearRecordTimer: function() {
+    if (this.recordTimer) {
+      clearInterval(this.recordTimer);
+      this.recordTimer = null;
+    }
+  },
+
+  stopRecordTimer: function() {
+    this.updateRecordElapsed();
+    this.clearRecordTimer();
+    this.recordStartTime = 0;
+  },
+
   toggleRecord: function() {
     if (!this.data.isRecording) return;
     switch(this.data.recordStatus) {
@@ -794,6 +1092,9 @@ Page({
         // API does not support pause/resume, so we stop.
         this.stopRecordAndSave();
         break;
+      case 'saving':
+        wx.showToast({ title: '正在保存...', icon: 'none' });
+        break;
     }
   },
 
@@ -802,13 +1103,39 @@ Page({
       wx.showToast({ title: '相机未就绪', icon: 'none' });
       return;
     }
+    if (this.recordStopInProgress) return;
+    this.recordSaveStarted = false;
+
     this.cameraContext.startRecord({
+      timeout: CONFIG.CAMERA_RECORD_MAX_DURATION,
       success: () => {
         if (this.isUnloaded) return;
-        this.setData({ recordStatus: 'recording' });
+        this.recordStopInProgress = false;
+        this.recordSaveStarted = false;
+        this.setData({
+          recordStatus: 'recording',
+          recordElapsedText: '0:00'
+        });
+        this.startRecordTimer();
         wx.showToast({ title: '开始录制', icon: 'none' });
       },
-      fail: () => {
+      timeoutCallback: (res) => {
+        this.stopRecordTimer();
+        this.handleRecordFinished(res, {
+          toastTitle: '录制已达时长上限',
+          callback: null
+        });
+      },
+      fail: (err) => {
+        this.recordStopInProgress = false;
+        this.recordSaveStarted = false;
+        if (!this.isUnloaded) {
+          this.setData({
+            recordStatus: 'ready',
+            recordElapsedText: '0:00'
+          });
+        }
+        console.warn('[record start fail]', err);
         wx.showToast({ title: '录制失败', icon: 'error' });
       }
     });
@@ -819,38 +1146,102 @@ Page({
       if(callback) callback();
       return;
     }
+    if (this.recordStopInProgress) {
+      if(callback) callback();
+      return;
+    }
     if (this.data.recordStatus !== 'recording') {
       if(callback) callback();
       return;
     }
+    this.recordStopInProgress = true;
+    this.stopRecordTimer();
+    if (!this.isUnloaded) {
+      this.setData({ recordStatus: 'saving' });
+    }
+
     this.cameraContext.stopRecord({
       success: (res) => {
-        if (!this.isUnloaded) {
-          this.setData({ recordStatus: 'ready' });
-        }
-        const { tempVideoPath } = res;
-        wx.showLoading({ title: '正在保存...' });
-        wx.saveVideoToPhotosAlbum({
-          filePath: tempVideoPath,
-          success: () => {
-            wx.hideLoading();
-            wx.showToast({ title: '已保存到相册', icon: 'success' });
-            if(callback) callback();
-          },
-          fail: (err) => {
-            wx.hideLoading();
-            if (err.errMsg.includes('auth')) {
-               wx.showToast({ title: '请授权保存到相册', icon: 'none' });
-            } else {
-               wx.showToast({ title: '保存失败', icon: 'error' });
-            }
-             if(callback) callback();
-          }
-        })
+        this.handleRecordFinished(res, { callback });
       },
-      fail: () => {
+      fail: (err) => {
+        this.recordStopInProgress = false;
+        if (!this.isUnloaded) {
+          this.setData({
+            recordStatus: 'ready',
+            recordElapsedText: '0:00'
+          });
+        }
+        console.warn('[record stop fail]', err);
         wx.showToast({ title: '结束录制失败', icon: 'error' });
         if(callback) callback();
+      }
+    });
+  },
+
+  handleRecordFinished: function(res, options = {}) {
+    if (this.recordSaveStarted) {
+      if (options.callback) options.callback();
+      return;
+    }
+    this.recordStopInProgress = true;
+    this.recordSaveStarted = true;
+    this.stopRecordTimer();
+
+    const tempVideoPath = res && res.tempVideoPath;
+    if (!tempVideoPath) {
+      this.recordStopInProgress = false;
+      this.recordSaveStarted = false;
+      if (!this.isUnloaded) {
+        this.setData({
+          recordStatus: 'ready',
+          recordElapsedText: '0:00'
+        });
+      }
+      if (!this.isUnloaded) {
+        wx.showToast({ title: '未获取到视频', icon: 'none' });
+      }
+      if (options.callback) options.callback();
+      return;
+    }
+
+    if (!this.isUnloaded) {
+      this.setData({ recordStatus: 'saving' });
+      wx.showLoading({ title: options.toastTitle || '正在保存...' });
+    }
+
+    wx.saveVideoToPhotosAlbum({
+      filePath: tempVideoPath,
+      success: () => {
+        if (!this.isUnloaded) {
+          wx.hideLoading();
+          wx.showToast({ title: '已保存到相册', icon: 'success' });
+          this.setData({
+            recordStatus: 'ready',
+            recordElapsedText: '0:00'
+          });
+        }
+        this.recordStopInProgress = false;
+        this.recordSaveStarted = false;
+        if (options.callback) options.callback();
+      },
+      fail: (err) => {
+        if (!this.isUnloaded) {
+          wx.hideLoading();
+          if (err.errMsg && err.errMsg.includes('auth')) {
+             wx.showToast({ title: '请授权保存到相册', icon: 'none' });
+          } else {
+             wx.showToast({ title: '保存失败', icon: 'error' });
+          }
+          this.setData({
+            recordStatus: 'ready',
+            recordElapsedText: '0:00'
+          });
+        }
+        console.warn('[record save fail]', err);
+        this.recordStopInProgress = false;
+        this.recordSaveStarted = false;
+        if (options.callback) options.callback();
       }
     });
   },

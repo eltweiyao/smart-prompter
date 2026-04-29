@@ -122,10 +122,11 @@ class SmartMatcher {
     const confidence = this.calculateConfidence(position, matchedLen, {
       textLength: cleanDelta.length,
       exact,
+      similarity: matchResult.similarity,
       mode: 'delta'
     });
 
-    if (confidence < CONFIG.CONFIDENCE_THRESHOLD) return null;
+    if (confidence < CONFIG.DELTA_CONFIDENCE_THRESHOLD) return null;
 
     this.currentPosition = position + matchedLen;
     this.calibrationConfidence = confidence;
@@ -160,10 +161,11 @@ class SmartMatcher {
     const confidence = this.calculateConfidence(position, matchedLen, {
       textLength: text.length,
       exact,
+      similarity: matchResult.similarity,
       mode: 'context'
     });
 
-    if (confidence < CONFIG.CONFIDENCE_THRESHOLD) return null;
+    if (confidence < CONFIG.CONTEXT_CONFIDENCE_THRESHOLD) return null;
 
     this.currentPosition = position + matchedLen;
     this.calibrationConfidence = confidence;
@@ -200,6 +202,11 @@ class SmartMatcher {
       this.collectCandidates(candidates, text.slice(-len), len, searchStart, searchEnd, false);
     }
 
+    const bestExactScore = candidates.reduce((best, item) => Math.max(best, item.score), 0);
+    if (!candidates.length || bestExactScore < 0.55) {
+      this.collectApproxCandidates(candidates, text, searchStart, searchEnd);
+    }
+
     if (!candidates.length) return null;
 
     candidates.sort((a, b) => b.score - a.score);
@@ -215,20 +222,71 @@ class SmartMatcher {
         position: idx,
         matchedLen,
         exact,
-        score: this.scoreCandidate(idx, matchedLen, exact)
+        similarity: 1,
+        score: this.scoreCandidate(idx, matchedLen, exact, 1)
       });
       idx = this.cleanScript.indexOf(sub, idx + 1);
     }
   }
 
-  scoreCandidate(position, matchedLen, exact) {
+  collectApproxCandidates(candidates, text, searchStart, searchEnd) {
+    const maxLen = Math.min(text.length, CONFIG.MATCH_MAX_LENGTH);
+    const minLen = Math.max(5, CONFIG.MATCH_MIN_LENGTH);
+
+    for (let len = maxLen; len >= minLen; len--) {
+      const sub = text.slice(-len);
+      const scanEnd = Math.min(searchEnd, this.cleanLength - len + 1);
+
+      for (let pos = searchStart; pos < scanEnd; pos++) {
+        const target = this.cleanScript.slice(pos, pos + len);
+        const similarity = this.calculateWindowSimilarity(sub, target);
+
+        if (similarity < 0.72) continue;
+
+        candidates.push({
+          position: pos,
+          matchedLen: len,
+          exact: false,
+          similarity,
+          score: this.scoreCandidate(pos, len, false, similarity)
+        });
+      }
+    }
+  }
+
+  calculateWindowSimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
+    const len = Math.min(str1.length, str2.length);
+    let samePosition = 0;
+    let orderedMatches = 0;
+    let cursor = 0;
+
+    for (let i = 0; i < len; i++) {
+      if (str1[i] === str2[i]) samePosition++;
+    }
+
+    for (let i = 0; i < str1.length; i++) {
+      const found = str2.indexOf(str1[i], cursor);
+      if (found !== -1) {
+        orderedMatches++;
+        cursor = found + 1;
+      }
+    }
+
+    const positionScore = samePosition / len;
+    const orderScore = orderedMatches / Math.max(str1.length, str2.length);
+    return positionScore * 0.7 + orderScore * 0.3;
+  }
+
+  scoreCandidate(position, matchedLen, exact, similarity = 1) {
     const diff = position - this.currentPosition;
     const distancePenalty = Math.min(Math.abs(diff) / 200, 1) * 0.35;
     const forwardBonus = diff >= 0 ? 0.18 : 0;
     const exactBonus = exact ? 0.18 : 0;
     const lengthScore = Math.min(matchedLen / CONFIG.MATCH_MAX_LENGTH, 1) * 0.45;
+    const similarityPenalty = (1 - similarity) * 0.5;
 
-    return lengthScore + forwardBonus + exactBonus - distancePenalty;
+    return lengthScore + forwardBonus + exactBonus - distancePenalty - similarityPenalty;
   }
 
   calculateConfidence(position, matchedLen, options = {}) {
@@ -245,6 +303,10 @@ class SmartMatcher {
 
     if (options.exact && matchedLen === options.textLength) {
       confidence += 0.12;
+    }
+
+    if (options.similarity !== undefined) {
+      confidence -= (1 - options.similarity) * 0.35;
     }
 
     if (options.mode === 'context') {

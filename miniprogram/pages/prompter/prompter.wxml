@@ -272,7 +272,7 @@
 
 <!-- Recording Controls -->
 <view class="record-controls {{isLandscape ? 'record-controls-landscape' : ''}}" wx:if="{{isRecording}}">
-  <view class="rc-placeholder"></view>
+  <view class="rc-timer">{{recordElapsedText}} / 5:00</view>
   <view class="rc-record-wrapper" bindtap="toggleRecord">
     <view class="rc-record-btn {{recordStatus}}"></view>
   </view>

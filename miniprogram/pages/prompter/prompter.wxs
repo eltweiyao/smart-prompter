@@ -18,10 +18,10 @@ function targetYChange(newVal, oldVal, ownerInstance, instance) {
   }
 
   if (mode === 'smart') {
-    // 仅在智能跟随模式下接管动画，保证 ASR 增量更新时的丝滑感
+    // 智能跟随由 JS tick 小步推进，短线性过渡能减少响应滞后。
     content.setStyle({
       'transform': 'translateY(' + newVal + 'px)',
-      'transition': 'transform 0.3s ease-out'
+      'transition': 'transform 0.12s linear'
     });
   } else {
     // 基础模式下，WXS 不应干预 transition 样式，
