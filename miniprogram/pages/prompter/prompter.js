@@ -63,9 +63,10 @@ Page({
   lastFollowTickTime: 0,
   lastStableMatchTime: 0,
   lastStableOriginalIndex: 0,
+  warmupStartOffset: 0,
   estimatedFollowSpeed: 0,
   smartSpeaking: false,
-  smartFollowDebug: true,
+  smartFollowDebug: false,
   lastFollowDebugTime: 0,
   tempScriptKey: '',
   isUnloaded: false,
@@ -482,7 +483,29 @@ Page({
   },
 
   getPredictedFollowTarget: function(now, currentOffset) {
-    return Math.min(currentOffset, this.followAnchorOffset);
+    const lastMatchAge = this.lastStableMatchTime ? now - this.lastStableMatchTime : Infinity;
+
+    if (!this.lastStableMatchTime && this.lastAsrActivityTime) {
+      const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
+      const speed = this.getDefaultFollowSpeed();
+      const elapsed = Math.max(0, now - this.lastAsrActivityTime);
+      const maxAhead = lineHeightPx * CONFIG.SMART_WARMUP_MAX_AHEAD_ROWS;
+      const warmupDistance = Math.min(maxAhead, speed * elapsed);
+      return Math.min(currentOffset, this.warmupStartOffset - warmupDistance);
+    }
+
+    if (
+      !this.estimatedFollowSpeed ||
+      lastMatchAge > CONFIG.SMART_PREDICT_MATCH_WINDOW_MS
+    ) {
+      return Math.min(currentOffset, this.followAnchorOffset);
+    }
+
+    const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
+    const maxAhead = lineHeightPx * CONFIG.SMART_PREDICT_MAX_AHEAD_ROWS;
+    const predictedAhead = Math.min(maxAhead, this.estimatedFollowSpeed * lastMatchAge);
+    const predictedOffset = this.followAnchorOffset - predictedAhead;
+    return Math.min(currentOffset, predictedOffset);
   },
 
   startFollowTick: function() {
@@ -543,6 +566,7 @@ Page({
         currentOffset,
         targetOffset,
         followAnchorOffset: this.followAnchorOffset,
+        lastMatchAge: this.lastStableMatchTime ? now - this.lastStableMatchTime : null,
         asrIdleMs: this.lastAsrActivityTime ? now - this.lastAsrActivityTime : null
       }, true);
       this.lastFollowTickTime = now;
@@ -565,6 +589,7 @@ Page({
       distance: Number(distance.toFixed(2)),
       step: Number(step.toFixed(2)),
       maxStep: Number(maxStep.toFixed(2)),
+      lastMatchAge: this.lastStableMatchTime ? now - this.lastStableMatchTime : null,
       asrIdleMs: this.lastAsrActivityTime ? now - this.lastAsrActivityTime : null,
       speaking
     }, true);
@@ -662,6 +687,7 @@ Page({
       this.lastAsrCandidateTime = 0;
       this.lastStableMatchTime = 0;
       this.lastStableOriginalIndex = startIndex;
+      this.warmupStartOffset = this.data.offsetY;
       this.estimatedFollowSpeed = 0;
       this.smartSpeaking = false;
       this.startFollowTick();
@@ -876,6 +902,7 @@ Page({
       this.followAnchorOffset = this.data.offsetY;
       this.lastStableOriginalIndex = startIndex;
       this.lastStableMatchTime = Date.now();
+      this.warmupStartOffset = this.data.offsetY;
       this.estimatedFollowSpeed = 0;
     }
   },
