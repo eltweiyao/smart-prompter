@@ -1,0 +1,52 @@
+<svg width="144" height="144" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="14" y1="10" x2="130" y2="134" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#60A5FA"/>
+      <stop offset="0.54" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+
+    <linearGradient id="panelGradient" x1="36" y1="28" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#DBEAFE" stop-opacity="0.82"/>
+    </linearGradient>
+
+    <filter id="softShadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+      <feOffset in="blur" dx="0" dy="5" result="offset"/>
+      <feFlood flood-color="#1E3A8A" flood-opacity="0.26" result="color"/>
+      <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="144" height="144" rx="32" fill="url(#bgGradient)"/>
+  <circle cx="118" cy="24" r="5" fill="#E0F2FE" fill-opacity="0.72"/>
+  <circle cx="25" cy="119" r="7" fill="#93C5FD" fill-opacity="0.34"/>
+
+  <g filter="url(#softShadow)">
+    <rect x="32" y="24" width="82" height="96" rx="20" fill="url(#panelGradient)"/>
+    <path d="M44 49H96" stroke="#93C5FD" stroke-width="6" stroke-linecap="round"/>
+    <path d="M44 67H101" stroke="#60A5FA" stroke-width="6" stroke-linecap="round"/>
+    <path d="M44 85H89" stroke="#BFDBFE" stroke-width="6" stroke-linecap="round"/>
+    <path d="M44 103H75" stroke="#BFDBFE" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <g>
+    <rect x="24" y="62" width="96" height="16" rx="8" fill="#EFF6FF" fill-opacity="0.96"/>
+    <path d="M35 70H109" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
+    <path d="M111 64L119 70L111 76" fill="#2563EB"/>
+  </g>
+
+  <g fill="#E0F2FE">
+    <rect x="22" y="50" width="6" height="40" rx="3" fill-opacity="0.88"/>
+    <rect x="12" y="58" width="6" height="24" rx="3" fill-opacity="0.66"/>
+    <rect x="2" y="64" width="6" height="12" rx="3" fill-opacity="0.48"/>
+  </g>
+
+  <path d="M92 34C101 38 108 46 111 56" fill="none" stroke="#E0F2FE" stroke-width="4" stroke-linecap="round" stroke-opacity="0.68"/>
+  <path d="M98 28C111 34 120 45 123 60" fill="none" stroke="#E0F2FE" stroke-width="4" stroke-linecap="round" stroke-opacity="0.34"/>
+</svg>

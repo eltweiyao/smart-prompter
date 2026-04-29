@@ -1,7 +1,7 @@
 const plugin = requirePlugin("wechat-si");
 const manager = plugin.getRecordRecognitionManager();
 const { SmartMatcher } = require('../../utils/matcher.js');
-const { STORAGE_KEYS } = require('../../utils/helpers.js');
+const { STORAGE_KEYS, CONFIG } = require('../../utils/helpers.js');
 
 Page({
   data: {
@@ -49,6 +49,7 @@ Page({
   layoutTimer: null,
   resizeMeasureTimer: null,
   recognitionRestartTimer: null,
+  recognitionRecoverFrames: 0,
   orientationTimer: null,
   smartFollowLeadRows: {
     portrait: 0.25,
@@ -302,7 +303,7 @@ Page({
       const isLastLine = i === lines.length - 1;
 
       if (partialLastLine && isLastLine) {
-        rows += Math.floor(units / charsPerLine);
+        rows += units / charsPerLine;
       } else {
         rows += Math.max(1, Math.ceil(units / charsPerLine));
       }
@@ -319,28 +320,56 @@ Page({
     return actualRows / estimatedRows;
   },
 
-  getSmartFollowRowsByText: function(progress) {
+  getSmartFollowRowsByIndex: function(originalIndex) {
     const content = this.data.content || '';
     if (!content) return 0;
 
-    const targetIndex = Math.max(0, Math.min(content.length, Math.floor(content.length * progress)));
+    const targetIndex = Math.max(0, Math.min(content.length, originalIndex || 0));
     const charsPerLine = this.getEstimatedCharsPerLine();
     const rows = this.getEstimatedRowsForLines(content.slice(0, targetIndex).split('\n'), charsPerLine, true);
     return rows * this.getSmartFollowRowScale(charsPerLine);
   },
 
-  getSmartFollowOffset: function(progress) {
+  getSmartFollowRowsByText: function(progress) {
+    const content = this.data.content || '';
+    const targetIndex = Math.floor(content.length * progress);
+    return this.getSmartFollowRowsByIndex(targetIndex);
+  },
+
+  getSmartFollowLeadRows: function(charsPerLine) {
+    if (this.data.isLandscape) return 0.2;
+    if (charsPerLine <= 8) return 1.4;
+    if (charsPerLine <= 12) return 1;
+    if (charsPerLine <= 18) return 0.6;
+    return 0.25;
+  },
+
+  getSmartFollowSnapThreshold: function(charsPerLine) {
+    if (this.data.isLandscape && charsPerLine >= 18) return 0.45;
+    return 0.65;
+  },
+
+  getSmartFollowOffset: function(matchInfo) {
     const lineHeightPx = Math.max(1, this.data.fontSize * this.data.lineHeight);
-    const rawDistance = this.getSmartFollowRowsByText(progress) * lineHeightPx;
-    const leadRows = this.data.isLandscape ? this.smartFollowLeadRows.landscape : this.smartFollowLeadRows.portrait;
+    const charsPerLine = this.getEstimatedCharsPerLine();
+    const originalIndex = typeof matchInfo === 'number'
+      ? Math.floor((this.data.content || '').length * matchInfo)
+      : matchInfo.originalIndex;
+    const rawDistance = this.getSmartFollowRowsByIndex(originalIndex) * lineHeightPx;
+    const leadRows = this.getSmartFollowLeadRows(charsPerLine);
     const predictedDistance = rawDistance + lineHeightPx * leadRows;
-    const snappedDistance = Math.floor(predictedDistance / lineHeightPx) * lineHeightPx + lineHeightPx;
+    const rowDistance = predictedDistance / lineHeightPx;
+    const baseRows = Math.floor(rowDistance);
+    const rowProgress = rowDistance - baseRows;
+    const snapThreshold = this.getSmartFollowSnapThreshold(charsPerLine);
+    const displayRows = rowProgress >= snapThreshold ? baseRows + 1 : baseRows;
+    const snappedDistance = displayRows * lineHeightPx;
     const maxDistance = Math.max(0, this.contentHeight - lineHeightPx);
     return -Math.min(snappedDistance, maxDistance);
   },
 
-  updateSmartFollowOffset: function(progress) {
-    const targetOffset = this.getSmartFollowOffset(progress);
+  updateSmartFollowOffset: function(matchInfo) {
+    const targetOffset = this.getSmartFollowOffset(matchInfo);
     if (targetOffset < this.data.offsetY) {
       this.setData({ offsetY: targetOffset });
     }
@@ -424,18 +453,34 @@ Page({
 
       this.matcher = new SmartMatcher(this.data.content, startIndex);
       this.lastRecognizedLength = 0;
+      this.recognitionRecoverFrames = 0;
 
       // 注册语音识别回调
       manager.onRecognize = (res) => {
         if (this.isUnloaded) return;
         const text = res.result || '';
-        const delta = text.slice(this.lastRecognizedLength);
+        const previousLength = this.lastRecognizedLength;
+        const isResetText = text.length < previousLength;
+        const delta = !isResetText ? text.slice(previousLength) : '';
         this.lastRecognizedLength = text.length;
 
-        if (delta && this.matcher) {
-          const progress = this.matcher.match(delta);
-          if (progress !== null) {
-            this.updateSmartFollowOffset(progress);
+        if (text && this.matcher) {
+          let matchInfo = delta ? this.matcher.matchDelta(delta) : null;
+          const shouldRecover = isResetText || this.recognitionRecoverFrames > 0 || matchInfo === null;
+
+          if (shouldRecover) {
+            const contextMatch = this.matcher.matchContext(text);
+            if (contextMatch) {
+              matchInfo = contextMatch;
+            }
+          }
+
+          if (this.recognitionRecoverFrames > 0) {
+            this.recognitionRecoverFrames--;
+          }
+
+          if (matchInfo !== null) {
+            this.updateSmartFollowOffset(matchInfo);
           }
         }
       };
@@ -443,6 +488,7 @@ Page({
       manager.onStop = (res) => {
         if (!this.isUnloaded && this.data.isRunning && this.data.mode === 'smart') {
           this.lastRecognizedLength = 0;
+          this.recognitionRecoverFrames = CONFIG.RECOVERY_FRAME_COUNT;
           this.setData({
             smartStatusText: '聆听中',
             smartStatusType: 'listening'
@@ -459,6 +505,8 @@ Page({
           this.recognitionRestartTimer = setTimeout(() => {
             this.recognitionRestartTimer = null;
             if (!this.isUnloaded && this.data.isRunning && this.data.mode === 'smart') {
+              this.lastRecognizedLength = 0;
+              this.recognitionRecoverFrames = CONFIG.RECOVERY_FRAME_COUNT;
               this.setData({
                 smartStatusText: '聆听中',
                 smartStatusType: 'listening'
@@ -468,16 +516,6 @@ Page({
           }, 1000);
         }
       };
-
-      // 启动定时器：每 500ms 调用一次 tick() 进行预测推进
-      this.predictTimer = setInterval(() => {
-        if (this.matcher && !this.isUnloaded && this.data.isRunning) {
-          const progress = this.matcher.tick();
-          if (progress !== null) {
-            this.updateSmartFollowOffset(progress);
-          }
-        }
-      }, 500);
 
       manager.start({ duration: 60000, lang: "zh_CN" });
     });
@@ -528,11 +566,6 @@ Page({
       });
     }
 
-    // 清除预测定时器
-    if (this.predictTimer) {
-      clearInterval(this.predictTimer);
-      this.predictTimer = null;
-    }
     if (this.recognitionRestartTimer) {
       clearTimeout(this.recognitionRestartTimer);
       this.recognitionRestartTimer = null;
@@ -593,18 +626,40 @@ Page({
     this.setData({ activeSettingsTab: e.currentTarget.dataset.tab });
   },
 
+  normalizeSettingNumber: function(value, precision, fallback) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    const factor = Math.pow(10, precision);
+    return Math.round(number * factor) / factor;
+  },
+
+  normalizeSettings: function(settings) {
+    return {
+      ...settings,
+      fontSize: this.normalizeSettingNumber(settings.fontSize, 0, this.data.fontSize),
+      lineHeight: this.normalizeSettingNumber(settings.lineHeight, 1, this.data.lineHeight),
+      letterSpacing: this.normalizeSettingNumber(settings.letterSpacing, 0, this.data.letterSpacing),
+      baselinePercent: this.normalizeSettingNumber(settings.baselinePercent, 0, this.data.baselinePercent),
+      wordsPerMinute: this.normalizeSettingNumber(settings.wordsPerMinute, 0, this.data.wordsPerMinute),
+      countdownDuration: this.normalizeSettingNumber(settings.countdownDuration, 0, this.data.countdownDuration)
+    };
+  },
+
   onFontSizeChange: function(e) {
-    this.setData({ fontSize: e.detail.value }, () => this.initLayoutLoop());
+    const fontSize = this.normalizeSettingNumber(e.detail.value, 0, this.data.fontSize);
+    this.setData({ fontSize }, () => this.initLayoutLoop());
     this.saveSettings();
   },
 
   onLineHeightChange: function(e) {
-    this.setData({ lineHeight: e.detail.value }, () => this.initLayoutLoop());
+    const lineHeight = this.normalizeSettingNumber(e.detail.value, 1, this.data.lineHeight);
+    this.setData({ lineHeight }, () => this.initLayoutLoop());
     this.saveSettings();
   },
 
   onLetterSpacingChange: function(e) {
-    this.setData({ letterSpacing: e.detail.value }, () => this.initLayoutLoop());
+    const letterSpacing = this.normalizeSettingNumber(e.detail.value, 0, this.data.letterSpacing);
+    this.setData({ letterSpacing }, () => this.initLayoutLoop());
     this.saveSettings();
   },
 
@@ -614,7 +669,8 @@ Page({
   },
 
   onWpmChange: function(e) {
-    this.setData({ wordsPerMinute: e.detail.value });
+    const wordsPerMinute = this.normalizeSettingNumber(e.detail.value, 0, this.data.wordsPerMinute);
+    this.setData({ wordsPerMinute });
     this.saveSettings();
   },
 
@@ -624,7 +680,8 @@ Page({
   },
 
   onCountdownDurationChange: function(e) {
-    this.setData({ countdownDuration: e.detail.value });
+    const countdownDuration = this.normalizeSettingNumber(e.detail.value, 0, this.data.countdownDuration);
+    this.setData({ countdownDuration });
     this.saveSettings();
   },
 
@@ -641,7 +698,8 @@ Page({
   },
 
   onBaselineChange: function(e) {
-    this.setData({ baselinePercent: e.detail.value });
+    const baselinePercent = this.normalizeSettingNumber(e.detail.value, 0, this.data.baselinePercent);
+    this.setData({ baselinePercent });
     this.saveSettings();
   },
 
@@ -655,12 +713,12 @@ Page({
     if (s) {
       if (s.fontColor) s.fontColor = s.fontColor.toLowerCase();
       if (s.bgColor) s.bgColor = s.bgColor.toLowerCase();
-      this.setData({ ...s });
+      this.setData(this.normalizeSettings(s));
     }
   },
 
   saveSettings: function() {
-    const d = this.data;
+    const d = this.normalizeSettings(this.data);
     const s = {
       fontSize: d.fontSize,
       lineHeight: d.lineHeight,
